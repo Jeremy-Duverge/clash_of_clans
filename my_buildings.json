@@ -1,0 +1,102 @@
+{
+    "DEFENSE" : {
+        "Air_Defense" : [8, 8, 8, 8],
+        "Air_Sweeper" : [6, 6],
+        "Archer_Tower" : [13, 13, 13, 13, 13, 13, 13, 7],
+        "Bomb_Tower" : [4, 4],
+        "Builder's_Hut" : [1, 1, 1, 1, 1],
+        "Cannon" : [13, 13, 13, 13, 13, 13, 7],
+        "Eagle_Artillery" : [1],
+        "Hidden_Tesla" : [9, 9, 8, 8],
+        "Inferno_Tower" : [3, 3],
+        "Monolith" : [],
+        "Mortar" : [8, 8, 8, 8],
+        "Scattershot" : [],
+        "Spell_Tower" : [],
+        "Wizard_Tower" : [9, 9, 9, 9, 2],
+        "X-Bow" : [4, 4, 4, 1]
+    },
+
+    "ATTACK" : {
+        "Army_Camp" : [8, 8, 8, 8],
+        "Barracks" : [12],
+        "Blacksmith" : [3],
+        "Dark_Barracks" : [7],
+        "Dark_Spell_Factory" : [5],
+        "Hero_Hall" : [5],
+        "Laboratory" : [9],
+        "Pet_House" : [],
+        "Spell_Factory" : [5],
+        "Workshop" : []
+    },
+    
+    "TRAPS" : {
+        "Air_Bomb" : [4, 4, 4, 4, 4],
+        "Bomb" : [7, 7, 7, 6, 6, 6],
+        "Giant_Bomb" : [4, 4, 4, 4, 4],
+        "Giga_Bomb" : [],
+        "Spring_Trap" : [4, 4, 4, 4, 4, 4],
+        "Seeking_Air_Mine" : [3, 3, 3, 2, 2],
+        "Skeleton_Trap" : [4, 4, 4],
+        "Tornado_Trap" : []
+    },
+    
+    "HEROES" : {
+        "Archer_Queen" : [40] ,
+        "Barbarian_King" : [40] ,
+        "Grand_Warden" : [1] ,
+        "Minion_Prince" : [20] ,
+        "Royal_Champion" : [1]
+    },
+
+    "LABO" : {
+        "Apprentice_Warden" : 1 ,
+        "Archer" : 7 ,
+        "Baby_Dragon" : 3 ,
+        "Balloon" : 6 ,
+        "Barbarian" : 7 ,
+        "Bowler" : 2 ,
+        "Dragon" : 5 ,
+        "Dragon_Rider" : 1 ,
+        "Druid" : 1 ,
+        "Electro_Dragon" : 1 ,
+        "Electro_Titan" : 1 ,
+        "Furnace" : 1,
+        "Giant" : 5 ,
+        "Goblin" : 5 ,
+        "Golem" : 5 ,
+        "Headhunter" : 1 ,
+        "Healer" : 5 ,
+        "Hog_Rider" : 5 ,
+        "Ice_Golem" : 1 ,
+        "Lava_Hound" : 3 ,
+        "Miner" : 1 ,
+        "Minion" : 6 ,
+        "P.E.K.K.A" : 5 ,
+        "Root_Rider" : 1 ,
+        "Thrower" : 1 ,
+        "Valkyrie" : 5 ,
+        "Wall_Breaker" : 4 ,
+        "Witch" : 3 ,
+        "Wizard" : 6 ,
+        "Yeti" : 1
+    },
+
+    "SPELLS" : {
+        "Bat_Spell" : 3 ,
+        "Clone_Spell" : 1 ,
+        "Earthquake_Spell" : 4 ,
+        "Freeze_Spell" : 5 ,
+        "Haste_Spell" : 1 ,
+        "Healing_Spell" : 7 ,
+        "Invisibility_Spell" : 1 ,
+        "Jump_Spell" : 2 ,
+        "Lightning_Spell" : 7 ,
+        "Overgrowth_Spell" : 1 ,
+        "Poison_Spell" : 4 ,
+        "Rage_Spell" : 5 ,
+        "Recall_Spell" : 1 ,
+        "Revive_Spell" : 1 ,
+        "Skeleton_Spell" : 3
+    }
+}

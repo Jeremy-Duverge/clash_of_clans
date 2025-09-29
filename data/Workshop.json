@@ -1,0 +1,11 @@
+{
+    "Level": ["1", "2", "3", "4", "5", "6", "7", "8"],
+    "Unlocked_Siege_Machine": ["Wall_Wrecker", "Battle_Blimp", "Stone_Slammer", "Siege_Barracks", "Log_Launcher", "Flame_Flinger", "Battle_Drill", "Troop_Launcher"],
+    "Siege_Machine_Capacity": ["1", "2", "3", "3", "3", "3", "3", "3"],
+    "Hitpoints": ["1,000", "1,100", "1,200", "1,300", "1,400", "1,500", "1,600", "1,700"],
+    "Build_Cost": ["2,400,000", "3,700,000", "5,000,000", "8,700,000", "9,000,000", "10,000,000", "11,000,000", "13,000,000"],
+    "Build_Time": ["2d", "3d", "4d", "7d", "7d6h", "7d12h", "7d18h", "8d"],
+    "Experience_Gained": ["415", "509", "587", "777", "791", "804", "818", "831"],
+    "Town_Hall_Level_Required": ["12", "12", "12", "13", "13", "14", "15", "16"],
+    "Number available": ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "1", "1", "1", "1", "1", "1"]
+}

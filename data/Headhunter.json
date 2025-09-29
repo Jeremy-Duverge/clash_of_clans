@@ -1,0 +1,13 @@
+{
+    "Level": ["1", "2", "3"],
+    "Damage_per_Second": ["105", "115", "125"],
+    "Damage_per_Hit": ["63", "69", "75"],
+    "DPS_on_Heroes": ["420", "460", "500"],
+    "Speed_Decrease_Attack_Rate_Decrease_Hitpoints": ["40%", "42%", "44%"],
+    "Attack_Rate_Decrease": ["55%", "60%", "65%"],
+    "Hitpoints": ["360", "400", "440"],
+    "Speed_Decrease": ["0", "57,500", "90,000"],
+    "Research_Time": ["0", "5d", "7d"],
+    "Laboratory_Level_Required": ["0", "10", "11"],
+    "Number available": []
+}

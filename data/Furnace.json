@@ -1,0 +1,9 @@
+{
+    "Level": ["1", "2", "3", "4"],
+    "Firemites_Spawned": ["19", "20", "21", "22"],
+    "Hitpoints": ["1,530", "1,620", "1,710", "1,800"],
+    "Research_Cost": ["0", "200,000", "260,000", "320,000"],
+    "Research_Time": ["0", "12d", "14d", "16d"],
+    "Laboratory_Level_Required": ["13", "13", "14", "15"],
+    "Number available": []
+}

@@ -1,0 +1,12 @@
+{
+    "Level": ["1", "2", "3"],
+    "Damage_per_Second": ["95", "105", "115"],
+    "Damage_per_Hit": ["209", "231", "253"],
+    "Wall_Damage_per_Second": ["10,000", "10,000", "10,000"],
+    "Wall_Damage_per_Hit": ["4,000", "4,000", "4,000"],
+    "Hitpoints": ["6,200", "6,350", "6,500"],
+    "Research_Cost": ["0", "15,000,000", "17,600,000"],
+    "Research_Time": ["0", "10d", "12d"],
+    "Laboratory_Level_Required": ["0", "13", "14"],
+    "Number available": []
+}

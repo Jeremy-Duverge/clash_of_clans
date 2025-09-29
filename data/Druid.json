@@ -1,0 +1,10 @@
+{
+    "Level": ["1", "2", "3", "4"],
+    "Healing_per_Second": ["65", "70", "75", "80"],
+    "Healing_per_Pulse": ["65", "70", "75", "80"],
+    "Hitpoints": ["1,300", "1,400", "1,500", "1,600"],
+    "Research_Cost": ["0", "125,000", "175,000", "187,500"],
+    "Research_Time": ["0", "9d", "12d", "13d"],
+    "Laboratory_Level_Required": ["0", "12", "13", "14"],
+    "Number available": []
+}

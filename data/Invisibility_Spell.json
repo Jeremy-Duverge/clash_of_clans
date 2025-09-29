@@ -1,0 +1,8 @@
+{
+    "Level": ["1", "2", "3", "4"],
+    "Duration": ["3.5s", "3.75s", "4s", "4.25s"],
+    "Research_Cost": ["0", "5,000,000", "6,000,000", "7,000,000"],
+    "Research_Time": ["0", "3d", "4d", "5d"],
+    "Laboratory_Level_Required": ["0", "9", "10", "11"],
+    "Number available": []
+}

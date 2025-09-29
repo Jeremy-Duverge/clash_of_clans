@@ -1,0 +1,11 @@
+{
+    "Level": ["1", "2", "3", "4"],
+    "Damage_per_Second": ["170", "185", "200", "215"],
+    "Damage_per_Hit": ["153", "166.5", "180", "193.5"],
+    "Aura_HP_Increase": ["20%", "22%", "24%", "26%"],
+    "Hitpoints": ["1,500", "1,650", "1,800", "1,950"],
+    "Research_Cost": ["0", "90,000", "135,000", "160,000"],
+    "Research_Time": ["0", "6d", "7d12h", "8d18h"],
+    "Laboratory_Level_Required": ["0", "11", "12", "13"],
+    "Number available": []
+}
