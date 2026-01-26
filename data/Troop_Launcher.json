@@ -1,0 +1,15 @@
+{
+    "Level": ["1", "2", "3", "4"],
+    "Hitpoints": ["2,000", "2,200", "2,400", "2,600"],
+    "Lifetime": ["80s", "88s", "96s", "104s"],
+    "Barrel_Count": ["5", "5", "6", "7"],
+    "Barbarien_Level": ["2", "2", "2", "2"],
+    "Archer_Level": ["3", "3", "4", "4"],
+    "Giant_Level": ["1", "1", "1", "1"],
+    "Wall_Breaker_Level": ["1", "2", "2", "2"],
+    "Troop_Level": ["9", "10", "11", "12"],
+    "Research_Cost": ["0", "8,500,000", "10,000,000", "17,000,000"],
+    "Research_Time": ["0", "6d", "9d", "9d"],
+    "Laboratory_Level_Required": ["0", "14", "14", "15"],
+    "Number available": []
+}
