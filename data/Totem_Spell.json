@@ -1,0 +1,9 @@
+{
+    "Level": ["1", "2", "3", "4"],
+    "Totem_Hitpoints": ["10,000", "11,000", "12,000", "13,000"],
+    "Totem_Damage": ["70", "80", "90", "100"],
+    "Research_Cost": ["0", "21,000,000", "22,000,000", "23,000,000"],
+    "Research_Time": ["0", "12d", "14d", "16d"],
+    "Laboratory_Level_Required": ["0", "14", "15", "16"],
+    "Number available": []
+}

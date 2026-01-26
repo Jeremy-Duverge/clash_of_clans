@@ -19,7 +19,7 @@ TAG = "https://api.clashofclans.com/v1/players/%23GPQUUY989"
 ####################
 ## IN GAME PARAMS ##
 
-LVL = 15
+LVL = 17
 
 BONUS = 20      # 15(%)
 
@@ -53,10 +53,10 @@ class Page:
                             .replace("], ", "],\n    ")\
                             .replace("N/A", "0")\
                             .replace("5*", "5")\
-                            .replace("/0*", "")\
-                            .replace("/2*", "")\
-                            .replace("/3*", "")\
-                            .replace("/4*", "")
+                            .replace("7/0*", "0")\
+                            .replace("9/2*", "2")\
+                            .replace("7/3*", "3")\
+                            .replace("8/4*", "4")
             print(json_dumps_str, file=fp)
     def get_info_from_file(self):
         with open('data/'+self.name+'.json', 'r') as fp:
@@ -268,6 +268,8 @@ def extract_columns(page, text):
                        "Lava_Pups_Spawned_DEF", "Hitpoints", "Research_Cost", "Research_Time", "Laboratory_Level_Required"]
         case "Electro_Dragon":
             columns.remove("(Primary_Target)")
+        case "Meteor_Golem":
+            columns[columns.index("Upgrade_Time")] = "Research_Time"
     return columns
 
 def extract_content(page, text, columns, index):
@@ -287,7 +289,7 @@ def extract_content(page, text, columns, index):
         case "Inferno_Tower":
             content_tmp.remove(content_tmp[0])
             content_tmp = [[content_tmp_i[0]] + ['/'.join([str(toto) for toto in content_tmp_i[1:4]])] + ['/'.join([str(toto) for toto in content_tmp_i[4:7]])] + content_tmp_i[7:] for content_tmp_i in content_tmp]
-            _ = [toto.remove("x6") for toto in content_tmp]
+            #_ = [toto.remove("x6") for toto in content_tmp]
         case "Blacksmith":
             content_tmp = content_tmp[:2]+[content_tmp[2]+content_tmp[3]]+[content_tmp[4]]+[content_tmp[5]+content_tmp[6]]+content_tmp[7:]
             content_tmp = [[a[0]] + ['_'.join([b for b in a if not any(c in b for c in string.digits)])] + [c for c in a[2:] if any(d in c for d in string.digits)] for a in content_tmp]
@@ -410,11 +412,11 @@ HEROES = ["Barbarian_King", "Archer_Queen", "Minion_Prince", "Grand_Warden", "Ro
 LABO = ["Barbarian", "Archer", "Giant", "Goblin", "Wall_Breaker", "Balloon", "Wizard", "Healer", "Dragon", "P.E.K.K.A",
         "Baby_Dragon", "Miner", "Electro_Dragon", "Yeti", "Dragon_Rider", "Electro_Titan", "Root_Rider", "Thrower",
         "Minion", "Hog_Rider", "Valkyrie", "Golem", "Witch", "Lava_Hound", "Bowler", "Ice_Golem", "Headhunter",
-        "Apprentice_Warden", "Druid", "Furnace",
+        "Apprentice_Warden", "Druid", "Furnace", "Meteor_Golem",
         "Wall_Wrecker", "Battle_Blimp", "Stone_Slammer", "Siege_Barracks", "Log_Launcher", "Flame_Flinger", "Battle_Drill", "Troop_Launcher"]
 
 SPELLS = ["Lightning_Spell", "Healing_Spell", "Rage_Spell", "Jump_Spell", "Freeze_Spell", "Clone_Spell", "Invisibility_Spell",
-          "Recall_Spell", "Revive_Spell", "Poison_Spell", "Earthquake_Spell", "Haste_Spell", "Skeleton_Spell", "Bat_Spell", "Overgrowth_Spell"]
+          "Recall_Spell", "Revive_Spell", "Poison_Spell", "Earthquake_Spell", "Haste_Spell", "Skeleton_Spell", "Bat_Spell", "Overgrowth_Spell", "Ice_Block_Spell", "Totem_Spell"]
 
 
 BUILDINGS = DEFENSE+ATTACK+HEROES

@@ -3,7 +3,7 @@
     "Hitpoints": ["2,000", "2,200", "2,400", "2,600"],
     "Lifetime": ["80s", "88s", "96s", "104s"],
     "Barrel_Count": ["5", "5", "6", "7"],
-    "Barbarien_Level": ["2", "2", "2", "2"],
+    "Barbarian_Level": ["2", "2", "2", "2"],
     "Archer_Level": ["3", "3", "4", "4"],
     "Giant_Level": ["1", "1", "1", "1"],
     "Wall_Breaker_Level": ["1", "2", "2", "2"],
