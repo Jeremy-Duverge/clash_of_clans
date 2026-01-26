@@ -27,7 +27,6 @@ BONUS = 20      # 15(%)
 ## CLASSES ##
 
 class Page:
-
     def __init__(self, name, level=0):
         self.name = name
         self.data = {}
@@ -43,42 +42,39 @@ class Page:
         except FileNotFoundError:
             self.data = extract_from_page(self.name)
             self.update(self.data)
-
     def __repr__(self):
         return f"{self.name}({self.level})"
-
     def update(self, info):
         with open('data/'+self.name+'.json', 'w') as fp:
             json_dumps_str = json.dumps(info)\
                             .replace("{", "{\n    ")\
                             .replace("}", "\n}")\
                             .replace("], ", "],\n    ")\
-                            .replace("N/A", "0")
+                            .replace("N/A", "0")\
+                            .replace("5*", "5")\
+                            .replace("/0*", "")\
+                            .replace("/2*", "")\
+                            .replace("/3*", "")\
+                            .replace("/4*", "")
             print(json_dumps_str, file=fp)
-
     def get_info_from_file(self):
         with open('data/'+self.name+'.json', 'r') as fp:
             self.data = json.load(fp)
-
     def set_level(self, level):
         self.level = level
 
-
 class HDV:
-
     def __init__(self, level=0):
         global BUILDINGS, TROOPS
         self.level = level
         self.buildings = {a: [] for a in BUILDINGS}
         self.troops = {a: 0 for a in TROOPS}
-
     def set_max(self):
         for page in BUILDINGS:
             self.buildings[page] = [level_max(page, self.level)]*number_max(page, self.level)
         for page in TROOPS:
             self.troops[page] = level_max(page, self.level)
         return self
-
     def get_page(self, page):
         try:
             return self.buildings[page]
@@ -87,7 +83,6 @@ class HDV:
                 return self.troops[page]
             except KeyError:
                 return []
-
     def to_max(self, hdv):
         buildings = []
         troops = []
@@ -152,7 +147,6 @@ class HDV:
             print(i)
         print("TOTAL: ", in_date(sum([in_seconds(troops[i][-1]) for i in range(len(troops))])))
         print()
-
 
 ###############
 ## FUNCTIONS ##
@@ -225,6 +219,8 @@ def extract_from_page(page):
             _ = [toto.remove("tiles") for toto in content_tmp]
         case "Tornado_Trap" | "Haste_Spell" | "Jump_Spell" | "Freeze_Spell":
             _ = [toto.remove("seconds") for toto in content_tmp]
+            if page == "Haste_Spell":
+                _ = [toto.remove("tiles") for toto in content_tmp]
         case "Spell_Tower":
             _ = [toto.remove("Spell") for toto in content_tmp]
         case "Inferno_Tower":
@@ -367,13 +363,6 @@ ALL_PAGES = BUILDINGS + TROOPS
 DRIVER = None
 
 DB = {}
-retrieve_all_data()
-
-
-MAX_VILLAGE = HDV(LVL)
-MAX_VILLAGE.set_max()
-
-MY_HDV = HDV(LVL)
 
 def init_my_hdv():
     global MY_HDV, HDV, LVL
@@ -387,4 +376,14 @@ def init_my_hdv():
         for page in eval(category):
             MY_HDV.troops[page] = my_pages[category][page]
 
-init_my_hdv()
+
+if __name__ == "__main__":
+    retrieve_all_data()
+    
+    MAX_VILLAGE = HDV(LVL)
+    MAX_VILLAGE.set_max()
+    
+    MY_HDV = HDV(LVL)
+    init_my_hdv()
+
+    MY_HDV.to_max(LVL)
