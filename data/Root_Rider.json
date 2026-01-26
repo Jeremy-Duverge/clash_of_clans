@@ -6,7 +6,7 @@
     "Wall_Damage_per_Hit": ["4,000", "4,000", "4,000"],
     "Hitpoints": ["6,200", "6,350", "6,500"],
     "Research_Cost": ["0", "15,000,000", "17,600,000"],
-    "Research_Time": ["0", "10d", "12d"],
+    "Research_Time": ["0", "8d", "10d"],
     "Laboratory_Level_Required": ["0", "13", "14"],
     "Number available": []
 }

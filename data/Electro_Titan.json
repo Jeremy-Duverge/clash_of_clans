@@ -6,7 +6,7 @@
     "Aura_Damage_per_Hit": ["30", "40", "50", "55"],
     "Hitpoints": ["7,200", "7,700", "8,200", "8,400"],
     "Research_Cost": ["0", "14,000,000", "16,000,000", "18,500,000"],
-    "Research_Time": ["0", "9d", "10d12h", "12d"],
+    "Research_Time": ["0", "9d", "9d12h", "11d"],
     "Laboratory_Level_Required": ["0", "12", "13", "14"],
     "Number available": []
 }

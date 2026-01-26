@@ -6,7 +6,7 @@
     "Maximum_Skeletons_Summoned": ["6", "8", "10", "12", "14", "15", "16"],
     "Hitpoints": ["300", "320", "400", "470", "520", "540", "560"],
     "Research_Cost": ["0", "20,000", "29,000", "45,000", "62,500", "150,000", "180,000"],
-    "Research_Time": ["0", "2d", "3d", "4d", "4d12h", "7d", "8d12h"],
+    "Research_Time": ["0", "2d", "3d", "3d12h", "4d", "5d12h", "7d6h"],
     "Laboratory_Level_Required": ["0", "7", "8", "9", "10", "13", "14"],
     "Number available": []
 }

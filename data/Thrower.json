@@ -1,10 +1,10 @@
 {
-    "Level": ["1", "2", "3"],
-    "Damage_per_Second": ["180", "190", "200"],
-    "Damage_per_Attack": ["450", "475", "500"],
-    "Hitpoints": ["1,800", "1,950", "2,100"],
-    "Research_Cost": ["0", "21,000,000", "23,000,000"],
-    "Research_Time": ["0", "14d", "16d"],
-    "Laboratory_Level_Required": ["0", "14", "15"],
+    "Level": ["1", "2", "3", "4"],
+    "Damage_per_Second": ["190", "200", "220", "240"],
+    "Damage_per_Attack": ["475", "500", "550", "600"],
+    "Hitpoints": ["2,100", "2,250", "2,500", "2,800"],
+    "Research_Cost": ["0", "16,000,000", "18,000,000", "27,000,000"],
+    "Research_Time": ["0", "9d12h", "10d12h", "15d"],
+    "Laboratory_Level_Required": ["0", "14", "15", "16"],
     "Number available": []
 }
