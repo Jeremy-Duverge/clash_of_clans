@@ -14,6 +14,8 @@ OPTIONS = webdriver.ChromeOptions()
 OPTIONS.add_argument('--incognito')
 BASE_URL = "https://clashofclans.fandom.com/wiki/"
 TAG = "https://api.clashofclans.com/v1/players/%23GPQUUY989"
+DRIVER = None
+
 
 
 ####################
@@ -21,33 +23,26 @@ TAG = "https://api.clashofclans.com/v1/players/%23GPQUUY989"
 
 LVL = 17
 
-BONUS = 0      # 15(%)
+BONUS = 20      # 15(%)
 
 
 #############
 ## CLASSES ##
 
-class Page:
-    def __init__(self, name, level=0):
+class PageInfo:
+    def __init__(self, name):
         self.name = name
-        self.data = {}
-        if level == 0:
-            if name in BUILDINGS:
-                self.level = 0
-            else:
-                self.level = 1
-        else:
-            self.level = level
+        self.file = 'data/'+name+'.json'
+        self.url = BASE_URL + name
         try:
-            self.get_info_from_file()
+            with open(self.file, 'r') as fp:
+                self.info = json.load(fp)
+            return
         except FileNotFoundError:
-            self.data = extract_from_page(self.name)
-            self.update(self.data)
-    def __repr__(self):
-        return f"{self.name} ({self.level})"
-    def update(self, info):
-        with open('data/'+self.name+'.json', 'w') as fp:
-            json_dumps_str = json.dumps(info)\
+            pass
+        self.info = extract_from_page(name)
+        with open(self.file, 'w') as fp:
+            json_dumps_str = json.dumps(self.info)\
                             .replace("{", "{\n    ")\
                             .replace("}", "\n}")\
                             .replace("], ", "],\n    ")\
@@ -58,41 +53,146 @@ class Page:
                             .replace("7/3*", "3")\
                             .replace("8/4*", "4")
             print(json_dumps_str, file=fp)
-    def get_info_from_file(self):
-        with open('data/'+self.name+'.json', 'r') as fp:
-            self.data = json.load(fp)
+            print(json_dumps_str)
+            self.info = json.loads(json_dumps_str)
+    def __repr__(self):
+        return f"{self.name}\n{self.info}"
+
+class BuildingInfo(PageInfo):
+    def number_max(self, hdv):
+        try:
+            return int(self.info["Number available"][hdv-1])
+        except:
+            print(f"Error: cannot find number max for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
+            raise
+    def level_max(self, hdv):
+        if self.name == "Town_Hall":
+            return hdv
+        try:
+            return sum([int(toto) <= hdv for toto in self.info["Town_Hall_Level_Required"]])
+        except:
+            print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
+            raise
+
+class TroopInfo(PageInfo):
+    def level_max(self, hdv):
+        try:
+            labo = BuildingInfo("Laboratory")
+            return sum([int(toto) <= labo.level_max(hdv) for toto in self.info["Laboratory_Level_Required"]])
+        except:
+            print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
+            raise
+    def number_max(self, _):
+        return 1
+
+class HeroInfo(PageInfo):
+    def level_max(self, hdv):
+        try:
+            hero_hall = BuildingInfo("Hero_Hall")
+            return sum([int(toto) <= hero_hall.level_max(hdv) for toto in self.info["Hero_Hall_Level_Required"]])
+        except:
+            print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
+            raise
+    def number_max(self, _):
+        return 1
+
+class IdMap:
+    def __init__(self):
+        with open('id_map.json', 'r') as fp:
+            buffer = json.load(fp)
+            self.id_to_name = {}
+            self.name_to_id = {}
+            for item in buffer:
+                self.id_to_name[item["dataId"]] = item["name"].replace(" ", "_")
+                self.name_to_id[item["name"].replace(" ", "_")] = item["dataId"]
+    def __getitem__(self, key):
+        try:
+            return self.id_to_name[key]
+        except KeyError:
+            return self.name_to_id[key]
+
+class Building:
+    def __init__(self, name, level=0):
+        self.name = name
+        self.level = level
+    def __repr__(self):
+        return f"Building {self.name} ({self.level})"
     def set_level(self, level):
         self.level = level
+    def lvl_max(self, hdv):
+        ref = BuildingInfo(self.name)
+        return ref.level_max(hdv)
 
-class Category:
-    def __init__(self, name):
+class Troop:
+    def __init__(self, name, level=1):
         self.name = name
-        self.pages = {}
-        if name == "CATEGORIES":
-            for page in eval(name):
-                self.pages[page] = Category(page)
-        else:
-            for page in eval(name):
-                self.pages[page] = Page(page)
+        self.level = level
     def __repr__(self):
-        return f"{self.name} ({len(self.pages)} pages)"
-    def __iter__(self):
-        for _, page in self.pages.items():
-            yield page
-    def add(self, page):
-        self.pages[page.name] = page
+        return f"Troop {self.name} ({self.level})"
+    def set_level(self, level):
+        self.level = level
+    def lvl_max(self, hdv):
+        ref = TroopInfo(self.name)
+        return ref.level_max(hdv)
+
+class Hero:
+    def __init__(self, name, level=1):
+        self.name = name
+        self.level = level
+    def __repr__(self):
+        return f"Hero {self.name} ({self.level})"
+    def set_level(self, level):
+        self.level = level
+    def lvl_max(self, hdv):
+        ref = HeroInfo(self.name)
+        return ref.level_max(hdv)
 
 class Village:
     def __init__(self, hdv_level=0):
         self.hdv_level = hdv_level
-        self.categories = {}
-        for category in CATEGORIES:
-            self.categories[category] = Category(category)
+        self.buildings = {}
+        self.heroes = []
+        self.troops = []
+    def load_from_exported_json(self):
+        with open('exported_village.json', 'r') as fp:
+            data = json.load(fp)
+        id_map = IdMap()
+        for building in data["buildings"] + data["traps"]:
+            if building["data"] not in id_map.id_to_name:
+                print(f"Warning: cannot find name for id {building['data']}")
+                continue
+            if id_map[building["data"]] not in self.buildings:
+                self.buildings[id_map[building["data"]]] = []
+            try:
+                building_number = building["cnt"]
+            except KeyError:
+                building_number = 1
+            for _ in range(building_number):
+                self.buildings[id_map[building["data"]]].append(Building(id_map[building["data"]], building["lvl"]))
+        del self.buildings["Wall"]
+        for hero in data["heroes"]:
+            self.heroes.append(Hero(id_map[hero["data"]], hero["lvl"]))
+        for troop in data["units"] + data["spells"] + data["siege_machines"]:
+            self.troops.append(Troop(id_map[troop["data"]], troop["lvl"]))
     def __repr__(self):
-        return f"Village (HDV {self.hdv_level}) with {len(self.categories)} categories"
+        my_string = f"Village (HDV {self.hdv_level})\n\nBUILDINGS:\n"
+        for building in self.buildings:
+            my_string += f"{building} : {[instance.level for instance in self.buildings[building]]} (/{self.buildings[building][0].lvl_max(self.hdv_level)})\n"
+        my_string += f"\nHEROES:\n"
+        for hero in self.heroes:
+            my_string += f"{hero} (/{hero.lvl_max(self.hdv_level)})\n"
+        my_string += f"\nTROOPS:\n"
+        for troop in self.troops:
+            my_string += f"{troop} (/{troop.lvl_max(self.hdv_level)})\n"
+        return my_string
     def __iter__(self):
-        for _, category in self.categories.items():
-            yield category
+        for building_list in self.buildings.values():
+            for building in building_list:
+                yield building
+        for hero in self.heroes:
+            yield hero
+        for troop in self.troops:
+            yield troop
 
 class HDV:
     def __init__(self, level=0):
@@ -194,27 +294,29 @@ def init_driver():
     return DRIVER
 
 def extract_from_page(page):
-    global DRIVER, LABO, SPELLS
-    print(f'Downloading content for {page}')
-    DRIVER = init_driver()
     url = BASE_URL + page
+    print(f'Downloading content for {page} : {url}')
+    DRIVER = init_driver()
     DRIVER.get(url)
     if DRIVER.title == 'Privacy error':
         DRIVER.find_element(By.ID, "details-button").click()
         DRIVER.find_element(By.ID, "proceed-link").click()
         time.sleep(1)
-    if page in LABO or page in SPELLS or page in HEROES:
+    if DRIVER.title == "Just a moment...":
+        exit("Error: Cloudflare protection is on, please disable it and try again.")
+    if page in TROOPS or page in HEROES:
         if page in ["Bat_Spell", "Skeleton_Spell"]:
             text = DRIVER.find_elements(By.CLASS_NAME, "wikitable")[2].text.splitlines()
         else:
             text = DRIVER.find_elements(By.CLASS_NAME, "wikitable")[1].text.splitlines()
         index = 2
     else:
+        print(DRIVER.title)
         text = DRIVER.find_element(By.CLASS_NAME, "wikitable").text.splitlines()
         index = 3
-    print(text)
+    print(f"text =\n{text}")
     columns = extract_columns(page, text)
-    print(columns)
+    print(f"columns =\n{columns}")
     return extract_content(page, text, columns, index)
 
 def extract_columns(page, text):
@@ -273,6 +375,8 @@ def extract_columns(page, text):
             columns.remove("(Primary_Target)")
         case "Meteor_Golem":
             columns[columns.index("Upgrade_Time")] = "Research_Time"
+        case "Elixir_Collector" | "Gold_Mine" | "Dark_Elixir_Drill":
+            columns.append("Town_Hall_Level_Required")
     return columns
 
 def extract_content(page, text, columns, index):
@@ -310,6 +414,10 @@ def extract_content(page, text, columns, index):
     if page == "Barracks":
         toto["Town_Hall_Level_Required"][1] = "1"
         toto["Town_Hall_Level_Required"][2] = "1"
+    if page == "Clan_Castle":
+        toto["Number available"][0] = "1"
+        toto["Number available"][1] = "1"
+        toto["Town_Hall_Level_Required"][0] = "2"
     return toto
 
 
@@ -383,77 +491,51 @@ def number_max(page, hdv):
 
 def level_max(page, hdv):
     try:
-        try:
-            return sum([int(toto) <= hdv for toto in DB[page]["Town_Hall_Level_Required"]])
-        except KeyError:
-            try:
-                return sum([int(toto) <= level_max("Laboratory", hdv) for toto in DB[page]["Laboratory_Level_Required"]])
-            except KeyError:
-                return sum([int(toto) <= level_max("Hero_Hall", hdv) for toto in DB[page]["Hero_Hall_Level_Required"]])
-    except:
+        return sum([int(toto) <= hdv for toto in DB[page]["Town_Hall_Level_Required"]])
+    except KeyError:
+        pass
+    try:
+        return sum([int(toto) <= level_max("Laboratory", hdv) for toto in DB[page]["Laboratory_Level_Required"]])
+    except KeyError:
+        pass
+    try:
+        return sum([int(toto) <= level_max("Hero_Hall", hdv) for toto in DB[page]["Hero_Hall_Level_Required"]])
+    except KeyError:
         print(f"Warning: cannot find max level for {page} at HDV {hdv}")
         raise
 
 ##############
 ## DATABASE ##
 
-CATEGORIES = ["DEFENSE", "ATTACK", "HEROES", "LABO", "SPELLS"]
+BUILDINGS = ["Town_Hall", 'Cannon', 'Archer_Tower', 'Mortar', 'Air_Defense', 'Wizard_Tower', 'Air_Sweeper', 'Hidden_Tesla', 'Bomb_Tower',
+             'X-Bow', 'Inferno_Tower', 'Eagle_Artillery', 'Scattershot', "Builders_Hut", 'Spell_Tower', 'Monolith',
+             "Bomb", "Spring_Trap", "Giant_Bomb", "Air_Bomb", "Seeking_Air_Mine", "Skeleton_Trap", "Tornado_Trap", "Giga_Bomb",
+             "Army_Camp", "Barracks", "Dark_Barracks", "Laboratory", "Hero_Hall", "Dark_Spell_Factory",
+             "Workshop", "Pet_House", "Blacksmith", "Spell_Factory", "Gold_Mine", "Elixir_Collector", "Dark_Elixir_Drill", 
+             "Gold_Storage", "Elixir_Storage", "Dark_Elixir_Storage", "Clan_Castle", "Firespitter", "Multi-Archer_Tower",
+             "Ricochet_Cannon", "Multi-Gear_Tower"]
+
+HEROES = ["Barbarian_King", "Archer_Queen", "Minion_Prince", "Grand_Warden", "Royal_Champion", "Dragon_Duke"]
+
+TROOPS = ["Barbarian", "Archer", "Giant", "Goblin", "Wall_Breaker", "Balloon", "Wizard", "Healer", "Dragon", "P.E.K.K.A",
+          "Baby_Dragon", "Miner", "Electro_Dragon", "Yeti", "Dragon_Rider", "Electro_Titan", "Root_Rider", "Thrower",
+          "Minion", "Hog_Rider", "Valkyrie", "Golem", "Witch", "Lava_Hound", "Bowler", "Ice_Golem", "Headhunter",
+          "Apprentice_Warden", "Druid", "Furnace", "Meteor_Golem",
+          "Wall_Wrecker", "Battle_Blimp", "Stone_Slammer", "Siege_Barracks", "Log_Launcher", "Flame_Flinger", "Battle_Drill", "Troop_Launcher",
+          "Lightning_Spell", "Healing_Spell", "Rage_Spell", "Jump_Spell", "Freeze_Spell", "Clone_Spell", "Invisibility_Spell",
+          "Recall_Spell", "Revive_Spell", "Poison_Spell", "Earthquake_Spell", "Haste_Spell", "Skeleton_Spell", "Bat_Spell",
+          "Overgrowth_Spell", "Ice_Block_Spell", "Totem_Spell"]
+
+CATEGORIES = ["BUILDINGS", "HEROES", "TROOPS"]
+
+ALL_PAGES = BUILDINGS + HEROES + TROOPS
 
 
-DEFENSE = ['Cannon', 'Archer_Tower', 'Mortar', 'Air_Defense', 'Wizard_Tower', 'Air_Sweeper', 'Hidden_Tesla', 'Bomb_Tower',
-           'X-Bow', 'Inferno_Tower', 'Eagle_Artillery', 'Scattershot', "Builder's_Hut", 'Spell_Tower', 'Monolith',
-           "Bomb", "Spring_Trap", "Giant_Bomb", "Air_Bomb", "Seeking_Air_Mine", "Skeleton_Trap", "Tornado_Trap", "Giga_Bomb"]
-
-ATTACK = ["Army_Camp", "Barracks", "Dark_Barracks", "Laboratory", "Hero_Hall", "Dark_Spell_Factory",
-          "Workshop", "Pet_House", "Blacksmith", "Spell_Factory"]
-
-
-
-HEROES = ["Barbarian_King", "Archer_Queen", "Minion_Prince", "Grand_Warden", "Royal_Champion"]
-
-
-LABO = ["Barbarian", "Archer", "Giant", "Goblin", "Wall_Breaker", "Balloon", "Wizard", "Healer", "Dragon", "P.E.K.K.A",
-        "Baby_Dragon", "Miner", "Electro_Dragon", "Yeti", "Dragon_Rider", "Electro_Titan", "Root_Rider", "Thrower",
-        "Minion", "Hog_Rider", "Valkyrie", "Golem", "Witch", "Lava_Hound", "Bowler", "Ice_Golem", "Headhunter",
-        "Apprentice_Warden", "Druid", "Furnace", "Meteor_Golem",
-        "Wall_Wrecker", "Battle_Blimp", "Stone_Slammer", "Siege_Barracks", "Log_Launcher", "Flame_Flinger", "Battle_Drill", "Troop_Launcher"]
-
-SPELLS = ["Lightning_Spell", "Healing_Spell", "Rage_Spell", "Jump_Spell", "Freeze_Spell", "Clone_Spell", "Invisibility_Spell",
-          "Recall_Spell", "Revive_Spell", "Poison_Spell", "Earthquake_Spell", "Haste_Spell", "Skeleton_Spell", "Bat_Spell", "Overgrowth_Spell", "Ice_Block_Spell", "Totem_Spell"]
-
-
-BUILDINGS = DEFENSE+ATTACK+HEROES
-
-TROOPS = LABO+SPELLS
-
-
-ALL_PAGES = BUILDINGS + TROOPS
-
-
-DRIVER = None
-
-DB = {}
-
-def init_my_hdv():
-    global MY_HDV, HDV, LVL
-    MY_HDV = HDV(LVL)
-    with open('my_buildings.json', 'r') as fp:
-        my_pages = json.load(fp)
-    for category in ["DEFENSE", "ATTACK", "HEROES"]:
-        for page in eval(category):
-            MY_HDV.buildings[page] = my_pages[category][page]
-    for category in ["LABO", "SPELLS"]:
-        for page in eval(category):
-            MY_HDV.troops[page] = my_pages[category][page]
+PROUT = Village(17)
+PROUT.load_from_exported_json()
 
 def main():
-    global MY_HDV, HDV, LVL
-    retrieve_all_data()
-    MAX_VILLAGE = HDV(LVL)
-    MAX_VILLAGE.set_max()
-    MY_HDV = HDV(LVL)
-    init_my_hdv()
-    MY_HDV.to_max(LVL)
+    pass
 
 if __name__ == "__main__":
     main()
