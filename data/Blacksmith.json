@@ -1,6 +1,6 @@
 {
     "Level": ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
-    "Equipment_Unlocked": ["Earthquake_Boots", "Giant_Arrow", "Vampstache_Metal_Pants", "Rage_Gem", "Healer_Puppet_Noble_Iron", "Healing_Tome", "Hog_Rider_Puppet", "Haste_Vial", "0"],
+    "Equipment_Unlocked": ["Earthquake_Boots", "Giant_Arrow", "Vampstache_Metal_Pants", "Rage_Gem", "Healer_Puppet_Noble_Iron", "Healing_Tome", "Hog_Rider_Puppet", "Haste_Vial", "Stun_Blaster"],
     "Hitpoints": ["700", "800", "900", "1,000", "1,100", "1,200", "1,300", "1,400", "1,500"],
     "Ore_Capacity_Shiny": ["10,000", "15,000", "20,000", "25,000", "30,000", "35,000", "40,000", "45,000", "50,000"],
     "Ore_Capacity_Glowy": ["1,000", "1,500", "2,000", "2,500", "3,000", "3,500", "4,000", "4,500", "5,000"],
