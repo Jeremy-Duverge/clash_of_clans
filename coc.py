@@ -7,9 +7,8 @@ from selenium.webdriver.common.keys import Keys
 import json
 import string
 import urllib
-import time
 
-CSERVICE = webdriver.ChromeService(executable_path='/usr/bin/chromedriver')
+CSERVICE = webdriver.ChromeService()
 OPTIONS = webdriver.ChromeOptions()
 OPTIONS.add_argument('--incognito')
 BASE_URL = "https://clashofclans.fandom.com/wiki/"
@@ -19,7 +18,7 @@ TAG = "https://api.clashofclans.com/v1/players/%23GPQUUY989"
 ####################
 ## IN GAME PARAMS ##
 
-LVL = 17
+LVL = 10
 
 BONUS = 0      # 15(%)
 
@@ -44,7 +43,7 @@ class Page:
             self.data = extract_from_page(self.name)
             self.update(self.data)
     def __repr__(self):
-        return f"{self.name} ({self.level})"
+        return f"{self.name}({self.level})"
     def update(self, info):
         with open('data/'+self.name+'.json', 'w') as fp:
             json_dumps_str = json.dumps(info)\
@@ -53,46 +52,16 @@ class Page:
                             .replace("], ", "],\n    ")\
                             .replace("N/A", "0")\
                             .replace("5*", "5")\
-                            .replace("7/0*", "0")\
-                            .replace("9/2*", "2")\
-                            .replace("7/3*", "3")\
-                            .replace("8/4*", "4")
+                            .replace("/0*", "")\
+                            .replace("/2*", "")\
+                            .replace("/3*", "")\
+                            .replace("/4*", "")
             print(json_dumps_str, file=fp)
     def get_info_from_file(self):
         with open('data/'+self.name+'.json', 'r') as fp:
             self.data = json.load(fp)
     def set_level(self, level):
         self.level = level
-
-class Category:
-    def __init__(self, name):
-        self.name = name
-        self.pages = {}
-        if name == "CATEGORIES":
-            for page in eval(name):
-                self.pages[page] = Category(page)
-        else:
-            for page in eval(name):
-                self.pages[page] = Page(page)
-    def __repr__(self):
-        return f"{self.name} ({len(self.pages)} pages)"
-    def __iter__(self):
-        for _, page in self.pages.items():
-            yield page
-    def add(self, page):
-        self.pages[page.name] = page
-
-class Village:
-    def __init__(self, hdv_level=0):
-        self.hdv_level = hdv_level
-        self.categories = {}
-        for category in CATEGORIES:
-            self.categories[category] = Category(category)
-    def __repr__(self):
-        return f"Village (HDV {self.hdv_level}) with {len(self.categories)} categories"
-    def __iter__(self):
-        for _, category in self.categories.items():
-            yield category
 
 class HDV:
     def __init__(self, level=0):
@@ -191,18 +160,13 @@ def init_driver():
         DRIVER.title
     except AttributeError:
         DRIVER = webdriver.Chrome(service=CSERVICE, options=OPTIONS)
-    return DRIVER
 
 def extract_from_page(page):
     global DRIVER, LABO, SPELLS
     print(f'Downloading content for {page}')
-    DRIVER = init_driver()
+    init_driver()
     url = BASE_URL + page
     DRIVER.get(url)
-    if DRIVER.title == 'Privacy error':
-        DRIVER.find_element(By.ID, "details-button").click()
-        DRIVER.find_element(By.ID, "proceed-link").click()
-        time.sleep(1)
     if page in LABO or page in SPELLS or page in HEROES:
         if page in ["Bat_Spell", "Skeleton_Spell"]:
             text = DRIVER.find_elements(By.CLASS_NAME, "wikitable")[2].text.splitlines()
@@ -213,11 +177,6 @@ def extract_from_page(page):
         text = DRIVER.find_element(By.CLASS_NAME, "wikitable").text.splitlines()
         index = 3
     print(text)
-    columns = extract_columns(page, text)
-    print(columns)
-    return extract_content(page, text, columns, index)
-
-def extract_columns(page, text):
     columns = [i.replace(" ", "_") for i in text if not any(j in i for j in string.digits) and i != '']
     match page:
         case "Witch":
@@ -230,22 +189,12 @@ def extract_columns(page, text):
             columns[5] = "Speed_Decrease"
             columns.insert(5, "Attack_Rate_Decrease")
             columns.insert(6, "Hitpoints")
-        case "Stone_Slammer":
-            columns[2] = "Damage_per_Attack"
-            columns.insert(3, "Damage_when_Destroyed")
-            columns.insert(3, "Poison")
-        case "Troop_Launcher":
-            columns = ['Level', 'Hitpoints', 'Lifetime', 'Barrel_Count', 'Barbarian_Level', 'Archer_Level', 'Giant_Level',\
-                       'Wall_Breaker_Level', 'Troop_Level', 'Research_Cost', 'Research_Time', 'Laboratory_Level_Required']
-        case "Siege_Barracks":
-            columns = ['Level', 'Hitpoints', 'P.E.K.K.As', 'Wizards', 'Research_Cost', 'Research_Time', 'Laboratory_Level_Required']
         case "Clone_Spell":
             columns = ["Level", "Cloned_Capacity", "Research_Cost", "Research_Time", "Laboratory_Level_Required"]
         case "Freeze_Spell":
             columns = ["Level", "Freeze_Time", "Research_Cost", "Research_Time", "Laboratory_Level_Required"]
         case "Blacksmith":
-            columns = ['Level', 'Equipment_Unlocked', 'Hitpoints', 'Ore_Capacity_Shiny', 'Ore_Capacity_Glowy', 'Ore_Capacity_Starry',\
-                       'Maximum_Equipment_Level_Common', 'Maximum_Equipment_Level_Epic', 'Build_Cost', 'Build_Time', 'Experience_Gained', 'Town_Hall_Level_Required']
+            columns = ['Level', 'Equipment_Unlocked', 'Hitpoints', 'Ore_Capacity_Shiny', 'Ore_Capacity_Glowy', 'Ore_Capacity_Starry', 'Maximum_Equipment_Level_Common', 'Maximum_Equipment_Level_Epic', 'Build_Cost', 'Build_Time', 'Experience_Gained', 'Town_Hall_Level_Required']
         case "Spell_Factory" | "Dark_Spell_Factory":
             columns[-2] += "_"+columns[-1]
             if page == "Dark_Spell_Factory":
@@ -264,23 +213,11 @@ def extract_columns(page, text):
         case "Grand_Warden":
             columns = ['Level', 'Damage_per_Second', 'Damage_per_Hit', 'Hitpoints', 'Health_Recovery', 'Upgrade_Cost', 'Upgrade_Time', 'Hero_Hall_Level_Required']
         case "Ice_Golem":
-            columns = ["Level", "Damage_per_Second", "Damage_per_Attack", "Freeze_Time_After_Death_ATK", "Freeze_Time_After_Death_DEF",\
-                       "Hitpoints", "Research_Cost", "Research_Time", "Laboratory_Level_Required"]
+            columns = ["Level", "Damage_per_Second", "Damage_per_Attack", "Freeze_Time_After_Death_ATK", "Freeze_Time_After_Death_DEF", "Hitpoints", "Research_Cost", "Research_Time", "Laboratory_Level_Required"]
         case "Lava_Hound":
-            columns = ["Level", "Damage_per_Second", "Damage_per_Hit", "Damage_Upon_Death", "Lava_Pups_Spawned_ATK",\
-                       "Lava_Pups_Spawned_DEF", "Hitpoints", "Research_Cost", "Research_Time", "Laboratory_Level_Required"]
-        case "Electro_Dragon":
-            columns.remove("(Primary_Target)")
-        case "Meteor_Golem":
-            columns[columns.index("Upgrade_Time")] = "Research_Time"
-    return columns
-
-def extract_content(page, text, columns, index):
-    global DRIVER
+            columns = ["Level", "Damage_per_Second", "Damage_per_Hit", "Damage_Upon_Death", "Lava_Pups_Spawned_ATK", "Lava_Pups_Spawned_DEF", "Hitpoints", "Research_Cost", "Research_Time", "Laboratory_Level_Required"]
     content_tmp = [i.split() for i in text if any(j in i for j in string.digits)]
     match page:
-        case "Stone_Slammer":
-            content_tmp.remove(content_tmp[0])
         case "Air_Sweeper" | "Giant_Bomb" | "Earthquake_Spell":
             _ = [toto.remove("tiles") for toto in content_tmp]
         case "Tornado_Trap" | "Haste_Spell" | "Jump_Spell" | "Freeze_Spell":
@@ -292,7 +229,10 @@ def extract_content(page, text, columns, index):
         case "Inferno_Tower":
             content_tmp.remove(content_tmp[0])
             content_tmp = [[content_tmp_i[0]] + ['/'.join([str(toto) for toto in content_tmp_i[1:4]])] + ['/'.join([str(toto) for toto in content_tmp_i[4:7]])] + content_tmp_i[7:] for content_tmp_i in content_tmp]
-            #_ = [toto.remove("x6") for toto in content_tmp]
+        case "Electro_Dragon":
+            columns.remove("(Primary_Target)")
+            columns.remove("(Primary_Target)")
+            _ = [toto.remove("x6") for toto in content_tmp]
         case "Blacksmith":
             content_tmp = content_tmp[:2]+[content_tmp[2]+content_tmp[3]]+[content_tmp[4]]+[content_tmp[5]+content_tmp[6]]+content_tmp[7:]
             content_tmp = [[a[0]] + ['_'.join([b for b in a if not any(c in b for c in string.digits)])] + [c for c in a[2:] if any(d in c for d in string.digits)] for a in content_tmp]
@@ -304,15 +244,12 @@ def extract_content(page, text, columns, index):
     content = [content_tmp_i[:len(columns)-index] + [''.join(content_tmp_i[len(columns)-index:-index+1])] + content_tmp_i[-index+1:] for content_tmp_i in content_tmp]
     table = DRIVER.find_elements(By.ID, "number-available-data-row")
     nb_buildings = ' '.join([i.text for i in table]).split()[2:]
-    # print(content)
     toto = {columns[i]: [content[j][i] for j in range(len(content))] for i in range(len(columns))}
     toto["Number available"] = nb_buildings
     if page == "Barracks":
         toto["Town_Hall_Level_Required"][1] = "1"
         toto["Town_Hall_Level_Required"][2] = "1"
     return toto
-
-
 
 def retrieve_all_data():
     global DB, ALL_PAGES
@@ -374,6 +311,21 @@ def in_date(seconds):
         result += str(seconds) + "s"
     return result
 
+def date_operation(operation):
+    inner_date = False
+    operation_exec = "in_date("
+    for i_char in operation :
+      if i_char.isalnum() and not inner_date :
+        operation_exec += "in_seconds(\""
+        inner_date = True
+      if not i_char.isalnum() and inner_date :
+        operation_exec += "\")"
+        inner_date = False
+      operation_exec += i_char
+    if inner_date :
+      operation_exec += "\")"
+    operation_exec += ")"
+    print(exec(operation_exec))
 
 def number_max(page, hdv):
     try:
@@ -383,30 +335,27 @@ def number_max(page, hdv):
 
 def level_max(page, hdv):
     try:
+        return sum([int(toto) <= hdv for toto in DB[page]["Town_Hall_Level_Required"]])
+    except KeyError:
         try:
-            return sum([int(toto) <= hdv for toto in DB[page]["Town_Hall_Level_Required"]])
+            return sum([int(toto) <= level_max("Laboratory", hdv) for toto in DB[page]["Laboratory_Level_Required"]])
         except KeyError:
-            try:
-                return sum([int(toto) <= level_max("Laboratory", hdv) for toto in DB[page]["Laboratory_Level_Required"]])
-            except KeyError:
-                return sum([int(toto) <= level_max("Hero_Hall", hdv) for toto in DB[page]["Hero_Hall_Level_Required"]])
-    except:
-        print(f"Warning: cannot find max level for {page} at HDV {hdv}")
-        raise
+            return sum([int(toto) <= level_max("Hero_Hall", hdv) for toto in DB[page]["Hero_Hall_Level_Required"]])
+
 
 ##############
 ## DATABASE ##
 
-CATEGORIES = ["DEFENSE", "ATTACK", "HEROES", "LABO", "SPELLS"]
+CATEGORIES = ["DEFENSE", "ATTACK", "TRAPS", "HEROES", "LABO", "SPELLS"]
 
 
 DEFENSE = ['Cannon', 'Archer_Tower', 'Mortar', 'Air_Defense', 'Wizard_Tower', 'Air_Sweeper', 'Hidden_Tesla', 'Bomb_Tower',
-           'X-Bow', 'Inferno_Tower', 'Eagle_Artillery', 'Scattershot', "Builder's_Hut", 'Spell_Tower', 'Monolith',
-           "Bomb", "Spring_Trap", "Giant_Bomb", "Air_Bomb", "Seeking_Air_Mine", "Skeleton_Trap", "Tornado_Trap", "Giga_Bomb"]
+           'X-Bow', 'Inferno_Tower', 'Eagle_Artillery', 'Scattershot', "Builder's_Hut", 'Spell_Tower', 'Monolith']
 
 ATTACK = ["Army_Camp", "Barracks", "Dark_Barracks", "Laboratory", "Hero_Hall", "Dark_Spell_Factory",
           "Workshop", "Pet_House", "Blacksmith", "Spell_Factory"]
 
+TRAPS = ["Bomb", "Spring_Trap", "Giant_Bomb", "Air_Bomb", "Seeking_Air_Mine", "Skeleton_Trap", "Tornado_Trap", "Giga_Bomb"]
 
 
 HEROES = ["Barbarian_King", "Archer_Queen", "Minion_Prince", "Grand_Warden", "Royal_Champion"]
@@ -415,14 +364,13 @@ HEROES = ["Barbarian_King", "Archer_Queen", "Minion_Prince", "Grand_Warden", "Ro
 LABO = ["Barbarian", "Archer", "Giant", "Goblin", "Wall_Breaker", "Balloon", "Wizard", "Healer", "Dragon", "P.E.K.K.A",
         "Baby_Dragon", "Miner", "Electro_Dragon", "Yeti", "Dragon_Rider", "Electro_Titan", "Root_Rider", "Thrower",
         "Minion", "Hog_Rider", "Valkyrie", "Golem", "Witch", "Lava_Hound", "Bowler", "Ice_Golem", "Headhunter",
-        "Apprentice_Warden", "Druid", "Furnace", "Meteor_Golem",
-        "Wall_Wrecker", "Battle_Blimp", "Stone_Slammer", "Siege_Barracks", "Log_Launcher", "Flame_Flinger", "Battle_Drill", "Troop_Launcher"]
+        "Apprentice_Warden", "Druid", "Furnace"]
 
 SPELLS = ["Lightning_Spell", "Healing_Spell", "Rage_Spell", "Jump_Spell", "Freeze_Spell", "Clone_Spell", "Invisibility_Spell",
-          "Recall_Spell", "Revive_Spell", "Poison_Spell", "Earthquake_Spell", "Haste_Spell", "Skeleton_Spell", "Bat_Spell", "Overgrowth_Spell", "Ice_Block_Spell", "Totem_Spell"]
+          "Recall_Spell", "Revive_Spell", "Poison_Spell", "Earthquake_Spell", "Haste_Spell", "Skeleton_Spell", "Bat_Spell", "Overgrowth_Spell"]
 
 
-BUILDINGS = DEFENSE+ATTACK+HEROES
+BUILDINGS = DEFENSE+ATTACK+TRAPS+HEROES
 
 TROOPS = LABO+SPELLS
 
@@ -439,21 +387,21 @@ def init_my_hdv():
     MY_HDV = HDV(LVL)
     with open('my_buildings.json', 'r') as fp:
         my_pages = json.load(fp)
-    for category in ["DEFENSE", "ATTACK", "HEROES"]:
+    for category in ["DEFENSE", "ATTACK", "TRAPS", "HEROES"]:
         for page in eval(category):
             MY_HDV.buildings[page] = my_pages[category][page]
     for category in ["LABO", "SPELLS"]:
         for page in eval(category):
             MY_HDV.troops[page] = my_pages[category][page]
 
-def main():
-    global MY_HDV, HDV, LVL
-    retrieve_all_data()
-    MAX_VILLAGE = HDV(LVL)
-    MAX_VILLAGE.set_max()
-    MY_HDV = HDV(LVL)
-    init_my_hdv()
-    MY_HDV.to_max(LVL)
 
 if __name__ == "__main__":
-    main()
+    retrieve_all_data()
+
+    MAX_VILLAGE = HDV(LVL)
+    MAX_VILLAGE.set_max()
+
+    MY_HDV = HDV(LVL)
+    init_my_hdv()
+
+    MY_HDV.to_max(LVL)
