@@ -51,6 +51,7 @@
   { "name": "Minion Prince", "dataId": 28000006 },
   { "name": "Grand Warden", "dataId": 28000002 },
   { "name": "Royal Champion", "dataId": 28000004 },
+  { "name": "Dragon Duke", "dataId": 28000007 },
   { "name": "Wall Wrecker", "dataId": 4000051 },
   { "name": "Battle Blimp", "dataId": 4000052 },
   { "name": "Stone Slammer", "dataId": 4000062 },
@@ -100,6 +101,7 @@
   { "name": "Druid", "dataId": 4000123 },
   { "name": "Thrower", "dataId": 4000132 },
   { "name": "Furnace", "dataId": 4000150 },
+  { "name": "Meteor Golem", "dataId": 4000177 },
   { "name": "Lightning Spell", "dataId": 26000000 },
   { "name": "Healing Spell", "dataId": 26000001 },
   { "name": "Rage Spell", "dataId": 26000002 },
@@ -115,5 +117,6 @@
   { "name": "Recall Spell", "dataId": 26000053 },
   { "name": "Overgrowth Spell", "dataId": 26000070 },
   { "name": "Revive Spell", "dataId": 26000098 },
-  { "name": "Ice Block Spell", "dataId": 26000109 }
+  { "name": "Ice Block Spell", "dataId": 26000109 },
+  { "name": "Totem Spell", "dataId": 26000120 }
 ]
