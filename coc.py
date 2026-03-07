@@ -21,7 +21,7 @@ TAG = "https://api.clashofclans.com/v1/players/%23GPQUUY989"
 
 LVL = 17
 
-BONUS = 20      # 15(%)
+BONUS = 0      # 15(%)
 
 
 #############
@@ -130,13 +130,16 @@ class HDV:
             if page in HEROES:
                 max_diff_hero = max(max([max_page[i]-my_page[i] for i in range(len(my_page))]), max_diff_hero)
             else:
-                max_diff = max(max([max_page[i]-my_page[i] for i in range(len(my_page))]), max_diff)
+                try:
+                    max_diff = max(max([max_page[i]-my_page[i] for i in range(len(my_page))]), max_diff)
+                except:
+                    print(f"Error in {page}:\nmy_page = {my_page}\nmax_page = {max_page}")
             for i in range(b):
                 if my_page[i] >= max_page[i]:
                     continue
                 buildings.append([page.rjust(18)])
                 building_time = 0
-                for j in range(my_page[i], max_page[i]):
+                for j in range(max_page[i]-1, my_page[i]-1, -1):
                     try:
                         upgrade_time = int((1.-0.01*BONUS)*in_seconds(DB[page]["Build_Time"][j]))
                     except KeyError:
@@ -144,8 +147,8 @@ class HDV:
                     buildings[-1] += [str(j+1).rjust(2), in_date(upgrade_time).rjust(8)]
                     building_time += upgrade_time
                 buildings[-1] += ["Total:", in_date(building_time).rjust(8)]
-        buildings.sort(key=lambda x: in_seconds(x[-1]), reverse=True)
-        buildings.sort(key=lambda x: int(x[1]) == 1, reverse=True)
+        buildings.sort(key=lambda x: in_seconds(x[2]), reverse=True)
+        #buildings.sort(key=lambda x: int(x[1]) == 1, reverse=True)
         for i in range(len(buildings)):
             if buildings[i][0].lstrip() in HEROES:
                 buildings[i] = buildings[i][:-2] + ['  ', '        ']*int(max_diff_hero+1.5-0.5*len(buildings[i])) + buildings[i][-2:]
@@ -160,12 +163,12 @@ class HDV:
                 continue
             troops.append([page.rjust(18)])
             troop_time = 0
-            for j in range(my_page, max_page):
+            for j in range(max_page-1, my_page-1, -1):
                 upgrade_time = int((1.-0.01*BONUS)*in_seconds(DB[page]["Research_Time"][j]))
                 troops[-1] += [str(j+1).rjust(2), in_date(upgrade_time).rjust(8)]
                 troop_time += upgrade_time
             troops[-1] += ["Total:", in_date(troop_time).rjust(8)]
-        troops.sort(key=lambda x: in_seconds(x[-1]), reverse=True)
+        troops.sort(key=lambda x: in_seconds(x[2]), reverse=True)
         for i in range(len(troops)):
             troops[i] = troops[i][:-2] + ['  ', '        ']*int(max_diff+1.5-0.5*len(troops[i])) + troops[i][-2:]
         print()
