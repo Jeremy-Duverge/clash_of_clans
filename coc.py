@@ -15,6 +15,7 @@ OPTIONS.add_argument('--incognito')
 BASE_URL = "https://clashofclans.fandom.com/wiki/"
 TAG = "https://api.clashofclans.com/v1/players/%23GPQUUY989"
 DRIVER = None
+DB = {}
 
 
 
@@ -56,7 +57,7 @@ class PageInfo:
             print(json_dumps_str)
             self.info = json.loads(json_dumps_str)
     def __repr__(self):
-        return f"{self.name}\n{self.info}"
+        return f"{self.name}\n"+json.dumps(self.info).replace("{", "{\n    ").replace("}", "\n}").replace("], ", "],\n    ")
 
 class BuildingInfo(PageInfo):
     def number_max(self, hdv):
@@ -73,28 +74,46 @@ class BuildingInfo(PageInfo):
         except:
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
+    def get_upgrade_time(self, level):
+        try:
+            return self.info["Build_Time"][level-1]
+        except KeyError:
+            print(f"Error: cannot find build time for {self.name} at level {level}\n{self.info}\n{self.url}")
+            raise
 
 class TroopInfo(PageInfo):
     def level_max(self, hdv):
         try:
-            labo = BuildingInfo("Laboratory")
+            labo = DB["Laboratory"]
             return sum([int(toto) <= labo.level_max(hdv) for toto in self.info["Laboratory_Level_Required"]])
         except:
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
     def number_max(self, _):
         return 1
+    def get_upgrade_time(self, level):
+        try:
+            return self.info["Research_Time"][level-1]
+        except KeyError:
+            print(f"Error: cannot find upgrade time for {self.name} at level {level}\n{self.info}\n{self.url}")
+            raise
 
 class HeroInfo(PageInfo):
     def level_max(self, hdv):
         try:
-            hero_hall = BuildingInfo("Hero_Hall")
+            hero_hall = DB["Hero_Hall"]
             return sum([int(toto) <= hero_hall.level_max(hdv) for toto in self.info["Hero_Hall_Level_Required"]])
         except:
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
     def number_max(self, _):
         return 1
+    def get_upgrade_time(self, level):
+        try:
+            return self.info["Upgrade_Time"][level-1]
+        except KeyError:
+            print(f"Error: cannot find upgrade time for {self.name} at level {level}\n{self.info}\n{self.url}")
+            raise
 
 class IdMap:
     def __init__(self):
@@ -119,8 +138,8 @@ class Building:
         return f"Building {self.name} ({self.level})"
     def set_level(self, level):
         self.level = level
-    def lvl_max(self, hdv):
-        ref = BuildingInfo(self.name)
+    def level_max(self, hdv):
+        ref = DB[self.name]
         return ref.level_max(hdv)
 
 class Troop:
@@ -131,8 +150,8 @@ class Troop:
         return f"Troop {self.name} ({self.level})"
     def set_level(self, level):
         self.level = level
-    def lvl_max(self, hdv):
-        ref = TroopInfo(self.name)
+    def level_max(self, hdv):
+        ref = DB[self.name]
         return ref.level_max(hdv)
 
 class Hero:
@@ -143,7 +162,7 @@ class Hero:
         return f"Hero {self.name} ({self.level})"
     def set_level(self, level):
         self.level = level
-    def lvl_max(self, hdv):
+    def level_max(self, hdv):
         ref = HeroInfo(self.name)
         return ref.level_max(hdv)
 
@@ -170,20 +189,42 @@ class Village:
             for _ in range(building_number):
                 self.buildings[id_map[building["data"]]].append(Building(id_map[building["data"]], building["lvl"]))
         del self.buildings["Wall"]
+        self.hdv_level = self.buildings["Town_Hall"][0].level
         for hero in data["heroes"]:
             self.heroes.append(Hero(id_map[hero["data"]], hero["lvl"]))
         for troop in data["units"] + data["spells"] + data["siege_machines"]:
             self.troops.append(Troop(id_map[troop["data"]], troop["lvl"]))
+    def check_nb_buildings(self):
+        for building in self.buildings:
+            if len(self.buildings[building]) > DB[building].number_max(self.hdv_level):
+                print(f"Warning: too many {building} (have {len(self.buildings[building])}, max {DB[building].number_max(self.hdv_level)})")
+            elif len(self.buildings[building]) < DB[building].number_max(self.hdv_level):
+                print(f"Warning: too few {building} (have {len(self.buildings[building])}, max {DB[building].number_max(self.hdv_level)})")
+    def to_max(self, hdv):
+        self.check_nb_buildings()
+        upgrader = Upgrader()
+        my_string = f"Village (HDV {self.hdv_level})\n\nBUILDINGS:\n"
+        for building, instances in self.buildings.items():
+            if building == "Archer_Tower":
+                continue
+            level_max = DB[building].level_max(hdv)
+            for instance in instances:
+                upgrader.add(instance, level_max)
+        for hero in self.heroes:
+            upgrader.add(hero, hero.level_max(hdv))
+        for troop in self.troops:
+            upgrader.add(troop, troop.level_max(hdv))
+        print(upgrader)
     def __repr__(self):
         my_string = f"Village (HDV {self.hdv_level})\n\nBUILDINGS:\n"
         for building in self.buildings:
-            my_string += f"{building} : {[instance.level for instance in self.buildings[building]]} (/{self.buildings[building][0].lvl_max(self.hdv_level)})\n"
+            my_string += f"{building} : {[instance.level for instance in self.buildings[building]]} (/{self.buildings[building][0].level_max(self.hdv_level)})\n"
         my_string += f"\nHEROES:\n"
         for hero in self.heroes:
-            my_string += f"{hero} (/{hero.lvl_max(self.hdv_level)})\n"
+            my_string += f"{hero} (/{hero.level_max(self.hdv_level)})\n"
         my_string += f"\nTROOPS:\n"
         for troop in self.troops:
-            my_string += f"{troop} (/{troop.lvl_max(self.hdv_level)})\n"
+            my_string += f"{troop} (/{troop.level_max(self.hdv_level)})\n"
         return my_string
     def __iter__(self):
         for building_list in self.buildings.values():
@@ -194,93 +235,75 @@ class Village:
         for troop in self.troops:
             yield troop
 
-class HDV:
-    def __init__(self, level=0):
-        global BUILDINGS, TROOPS
-        self.level = level
-        self.buildings = {a: [] for a in BUILDINGS}
-        self.troops = {a: 0 for a in TROOPS}
-    def set_max(self):
-        for page in BUILDINGS:
-            self.buildings[page] = [level_max(page, self.level)]*number_max(page, self.level)
-        for page in TROOPS:
-            self.troops[page] = level_max(page, self.level)
-        return self
-    def get_page(self, page):
-        try:
-            return self.buildings[page]
-        except KeyError:
+class Upgrade:
+    def __init__(self, building, level_max):
+        self.name = building.name
+        self.list_upgrades = []
+        self.time_total = 0
+        self.offset = 0
+        for i in range(level_max, building.level, -1):
             try:
-                return self.troops[page]
+                upgrade_time = int((1.-0.01*BONUS)*in_seconds(DB[building.name].get_upgrade_time(i)))
             except KeyError:
-                return []
-    def to_max(self, hdv):
-        buildings = []
-        troops = []
-        max_diff = 0
-        max_diff_hero = 0
-        for page in BUILDINGS:
-            my_page = self.buildings[page]
-            max_page = [level_max(page, hdv)]*number_max(page, hdv)
-            a = len(my_page)
-            b = len(max_page)
-            if a == 0 or b == 0:
-                continue
-            my_page[a:b] = [0]*(b-a)
-            if page in HEROES:
-                max_diff_hero = max(max([max_page[i]-my_page[i] for i in range(len(my_page))]), max_diff_hero)
-            else:
-                try:
-                    max_diff = max(max([max_page[i]-my_page[i] for i in range(len(my_page))]), max_diff)
-                except:
-                    print(f"Error in {page}:\nmy_page = {my_page}\nmax_page = {max_page}")
-            for i in range(b):
-                if my_page[i] >= max_page[i]:
-                    continue
-                buildings.append([page.rjust(18)])
-                building_time = 0
-                for j in range(max_page[i]-1, my_page[i]-1, -1):
-                    try:
-                        upgrade_time = int((1.-0.01*BONUS)*in_seconds(DB[page]["Build_Time"][j]))
-                    except KeyError:
-                        upgrade_time = int((1.-0.01*BONUS)*in_seconds(DB[page]["Upgrade_Time"][j]))
-                    buildings[-1] += [str(j+1).rjust(2), in_date(upgrade_time).rjust(8)]
-                    building_time += upgrade_time
-                buildings[-1] += ["Total:", in_date(building_time).rjust(8)]
-        buildings.sort(key=lambda x: in_seconds(x[2]), reverse=True)
-        #buildings.sort(key=lambda x: int(x[1]) == 1, reverse=True)
-        for i in range(len(buildings)):
-            if buildings[i][0].lstrip() in HEROES:
-                buildings[i] = buildings[i][:-2] + ['  ', '        ']*int(max_diff_hero+1.5-0.5*len(buildings[i])) + buildings[i][-2:]
-            else:
-                buildings[i] = buildings[i][:-2] + ['  ', '        ']*int(max_diff+1.5-0.5*len(buildings[i])) + buildings[i][-2:]
-        max_diff = 0
-        for page in TROOPS:
-            my_page = self.troops[page]
-            max_page = level_max(page, hdv)
-            max_diff = max(max_page-my_page, max_diff)
-            if my_page >= max_page:
-                continue
-            troops.append([page.rjust(18)])
-            troop_time = 0
-            for j in range(max_page-1, my_page-1, -1):
-                upgrade_time = int((1.-0.01*BONUS)*in_seconds(DB[page]["Research_Time"][j]))
-                troops[-1] += [str(j+1).rjust(2), in_date(upgrade_time).rjust(8)]
-                troop_time += upgrade_time
-            troops[-1] += ["Total:", in_date(troop_time).rjust(8)]
-        troops.sort(key=lambda x: in_seconds(x[2]), reverse=True)
-        for i in range(len(troops)):
-            troops[i] = troops[i][:-2] + ['  ', '        ']*int(max_diff+1.5-0.5*len(troops[i])) + troops[i][-2:]
-        print()
-        print("BUILDINGS:")
-        for i in buildings:
-            print(i)
-        print("TOTAL: ", in_date(sum([in_seconds(buildings[i][-1]) for i in range(len(buildings))])))
-        print("\nTROOPS:")
-        for i in troops:
-            print(i)
-        print("TOTAL: ", in_date(sum([in_seconds(troops[i][-1]) for i in range(len(troops))])))
-        print()
+                print(f"Error: cannot find upgrade time for {building.name} at level {i}\n{DB[building.name].info}\n{DB[building.name].url}")
+                raise
+            self.list_upgrades.append((i, in_date(upgrade_time)))
+            self.time_total += upgrade_time
+    def set_offset(self, offset):
+        self.offset = offset
+    def __lt__(self, other):
+        return self.time_total < other.time_total
+    def __repr__(self):
+        string = f"[{self.name.rjust(21)}|"
+        for upgrade in self.list_upgrades:
+            string += f" {str(upgrade[0]).rjust(3)}: ({upgrade[1].ljust(9)}) |"
+        for _ in range(self.offset):
+            string += " "*(19)
+        string += f" Total: {in_date(self.time_total).rjust(12)}]"
+        return string
+
+class Upgrader:
+    def __init__(self):
+        self.max_buildings = 0
+        self.max_heroes = 0
+        self.max_troops = 0
+        self.buildings = []
+        self.heroes = []
+        self.troops = []
+    def add(self, building, level_max):
+        if isinstance(building, Building):
+            self.buildings.append(Upgrade(building, level_max))
+            self.max_buildings = max(self.max_buildings, level_max - building.level)
+        elif isinstance(building, Hero):
+            self.heroes.append(Upgrade(building, level_max))
+            self.max_heroes = max(self.max_heroes, level_max - building.level)
+        elif isinstance(building, Troop):
+            self.troops.append(Upgrade(building, level_max))
+            self.max_troops = max(self.max_troops, level_max - building.level)
+        else:
+            raise ValueError(f"Cannot add {building} to upgrader")
+    def refresh(self):
+        self.buildings.sort(reverse=True)
+        self.heroes.sort(reverse=True)
+        self.troops.sort(reverse=True)
+        for building in self.buildings:
+            building.set_offset(self.max_buildings - len(building.list_upgrades))
+        for hero in self.heroes:
+            hero.set_offset(self.max_heroes - len(hero.list_upgrades))
+        for troop in self.troops:
+            troop.set_offset(self.max_troops - len(troop.list_upgrades))
+    def __repr__(self):
+        self.refresh()
+        my_string = f"Upgrader\n\nBUILDINGS:\n"
+        for building in self.buildings:
+            my_string += f"{building}\n"
+        my_string += f"\nHEROES:\n"
+        for hero in self.heroes:
+            my_string += f"{hero}\n"
+        my_string += f"\nTROOPS:\n"
+        for troop in self.troops:
+            my_string += f"{troop}\n"
+        return my_string
 
 ###############
 ## FUNCTIONS ##
@@ -508,7 +531,7 @@ def level_max(page, hdv):
 ## DATABASE ##
 
 BUILDINGS = ["Town_Hall", 'Cannon', 'Archer_Tower', 'Mortar', 'Air_Defense', 'Wizard_Tower', 'Air_Sweeper', 'Hidden_Tesla', 'Bomb_Tower',
-             'X-Bow', 'Inferno_Tower', 'Eagle_Artillery', 'Scattershot', "Builders_Hut", 'Spell_Tower', 'Monolith',
+             'X-Bow', 'Inferno_Tower', 'Eagle_Artillery', 'Scattershot', "Builder's_Hut", 'Spell_Tower', 'Monolith',
              "Bomb", "Spring_Trap", "Giant_Bomb", "Air_Bomb", "Seeking_Air_Mine", "Skeleton_Trap", "Tornado_Trap", "Giga_Bomb",
              "Army_Camp", "Barracks", "Dark_Barracks", "Laboratory", "Hero_Hall", "Dark_Spell_Factory",
              "Workshop", "Pet_House", "Blacksmith", "Spell_Factory", "Gold_Mine", "Elixir_Collector", "Dark_Elixir_Drill", 
@@ -530,9 +553,16 @@ CATEGORIES = ["BUILDINGS", "HEROES", "TROOPS"]
 
 ALL_PAGES = BUILDINGS + HEROES + TROOPS
 
+for building in BUILDINGS:
+    DB[building] = BuildingInfo(building)
+for troop in TROOPS:
+    DB[troop] = TroopInfo(troop)
+for hero in HEROES:
+    DB[hero] = HeroInfo(hero)
 
 PROUT = Village(17)
 PROUT.load_from_exported_json()
+
 
 def main():
     pass
