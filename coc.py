@@ -14,7 +14,6 @@ OPTIONS = webdriver.ChromeOptions()
 OPTIONS.add_argument('--incognito')
 BASE_URL = "https://clashofclans.fandom.com/wiki/"
 TAG = "https://api.clashofclans.com/v1/players/%23GPQUUY989"
-DB = {}
 
 
 class DriverManager:
@@ -188,7 +187,7 @@ class TroopInfo(PageInfo):
             Maximum level as an int, based on the Laboratory level at that TH.
         """
         try:
-            labo = DB["Laboratory"]
+            labo = db["Laboratory"]
             return sum([int(toto) <= labo.level_max(hdv) for toto in self.info["Laboratory_Level_Required"]])
         except Exception:
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
@@ -228,7 +227,7 @@ class HeroInfo(PageInfo):
             Maximum level as an int, based on the Hero Hall level at that TH.
         """
         try:
-            hero_hall = DB["Hero_Hall"]
+            hero_hall = db["Hero_Hall"]
             return sum([int(toto) <= hero_hall.level_max(hdv) for toto in self.info["Hero_Hall_Level_Required"]])
         except Exception:
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
@@ -250,6 +249,64 @@ class HeroInfo(PageInfo):
         except KeyError:
             print(f"Error: cannot find upgrade time for {self.name} at level {level}\n{self.info}\n{self.url}")
             raise
+
+class Database:
+    """Cache for all entity data (buildings, troops, heroes).
+
+    Lazily loads and caches PageInfo instances on first access.
+    Use bracket notation to retrieve entities: ``db["Cannon"]``.
+
+    Attributes:
+        _cache: Internal dict of loaded PageInfo instances.
+        _building_names: Set of building/defense names.
+        _troop_names: Set of troop/spell/siege machine names.
+        _hero_names: Set of hero names.
+    """
+
+    def __init__(self, building_names, troop_names, hero_names):
+        """Initialize the database with entity name lists.
+
+        Args:
+            building_names: List of building/defense names.
+            troop_names: List of troop/spell/siege machine names.
+            hero_names: List of hero names.
+        """
+        self._cache = {}
+        self._building_names = set(building_names)
+        self._troop_names = set(troop_names)
+        self._hero_names = set(hero_names)
+
+    def __getitem__(self, name):
+        """Retrieve a PageInfo instance by name, loading it lazily if needed.
+
+        Args:
+            name: Entity name (e.g. 'Cannon', 'Barbarian').
+
+        Returns:
+            The corresponding BuildingInfo, TroopInfo, or HeroInfo instance.
+
+        Raises:
+            KeyError: If the name is not recognized.
+        """
+        if name not in self._cache:
+            if name in self._building_names:
+                self._cache[name] = BuildingInfo(name)
+            elif name in self._troop_names:
+                self._cache[name] = TroopInfo(name)
+            elif name in self._hero_names:
+                self._cache[name] = HeroInfo(name)
+            else:
+                raise KeyError(f"Unknown entity: {name}")
+        return self._cache[name]
+
+    def __contains__(self, name):
+        """Check if a name is a known entity."""
+        return name in self._building_names or name in self._troop_names or name in self._hero_names
+
+    def load_all(self):
+        """Eagerly load all entities into the cache."""
+        for name in list(self._building_names) + list(self._troop_names) + list(self._hero_names):
+            _ = self[name]
 
 class IdMap:
     """Bidirectional mapping between numeric data IDs and entity names.
@@ -294,7 +351,7 @@ class Building:
     def set_level(self, level):
         self.level = level
     def level_max(self, hdv):
-        ref = DB[self.name]
+        ref = db[self.name]
         return ref.level_max(hdv)
 
 class Troop:
@@ -314,7 +371,7 @@ class Troop:
     def set_level(self, level):
         self.level = level
     def level_max(self, hdv):
-        ref = DB[self.name]
+        ref = db[self.name]
         return ref.level_max(hdv)
 
 class Hero:
@@ -334,7 +391,7 @@ class Hero:
     def set_level(self, level):
         self.level = level
     def level_max(self, hdv):
-        ref = DB[self.name]
+        ref = db[self.name]
         return ref.level_max(hdv)
 
 class Village:
@@ -398,15 +455,15 @@ class Village:
             hdv: Town Hall level to validate against.
         """
         for building, instances in self.buildings.items():
-            if len(instances) > DB[building].number_max(hdv):
-                print(f"Warning: too many {building} (have {len(instances)}, max {DB[building].number_max(hdv)})")
-            elif len(instances) < DB[building].number_max(hdv):
-                self.buildings[building] += [Building(building, 0) for _ in range(DB[building].number_max(hdv) - len(instances))]
-                print(f"Warning: too few {building}, adding {DB[building].number_max(hdv) - len(instances)} of them at level 0")
+            if len(instances) > db[building].number_max(hdv):
+                print(f"Warning: too many {building} (have {len(instances)}, max {db[building].number_max(hdv)})")
+            elif len(instances) < db[building].number_max(hdv):
+                self.buildings[building] += [Building(building, 0) for _ in range(db[building].number_max(hdv) - len(instances))]
+                print(f"Warning: too few {building}, adding {db[building].number_max(hdv) - len(instances)} of them at level 0")
         for building in BUILDINGS:
-            if building not in self.buildings and DB[building].number_max(hdv) > 0:
-                self.buildings[building] = [Building(building, 0) for _ in range(DB[building].number_max(hdv))]
-                print(f"Warning: missing {building}, adding {DB[building].number_max(hdv)} of them at level 0")
+            if building not in self.buildings and db[building].number_max(hdv) > 0:
+                self.buildings[building] = [Building(building, 0) for _ in range(db[building].number_max(hdv))]
+                print(f"Warning: missing {building}, adding {db[building].number_max(hdv)} of them at level 0")
     def to_max(self, hdv):
         """Print the full upgrade plan to max everything for the given TH level.
 
@@ -419,7 +476,7 @@ class Village:
         for building, instances in self.buildings.items():
             if building == "Archer_Tower":
                 continue
-            level_max = DB[building].level_max(hdv)
+            level_max = db[building].level_max(hdv)
             for instance in instances:
                 upgrader.add(instance, level_max)
         for hero in self.heroes:
@@ -473,9 +530,9 @@ class Upgrade:
         self.offset = 0
         for i in range(level_max, building.level, -1):
             try:
-                upgrade_time = int((1.-0.01*BONUS)*in_seconds(DB[building.name].get_upgrade_time(i)))
+                upgrade_time = int((1.-0.01*BONUS)*in_seconds(db[building.name].get_upgrade_time(i)))
             except KeyError:
-                print(f"Error: cannot find upgrade time for {building.name} at level {i}\n{DB[building.name].info}\n{DB[building.name].url}")
+                print(f"Error: cannot find upgrade time for {building.name} at level {i}\n{db[building.name].info}\n{db[building.name].url}")
                 raise
             self.list_upgrades.append((i, in_date(upgrade_time)))
             self.time_total += upgrade_time
@@ -766,10 +823,8 @@ def extract_content(page, text, columns, index):
 
 
 def retrieve_all_data():
-    """Populate the global DB with data for all pages (buildings, troops, heroes)."""
-    global DB, ALL_PAGES
-    for page in ALL_PAGES:
-        DB[page] = Page(page).data
+    """Eagerly load all entities into the database cache."""
+    db.load_all()
 
 def download_my_village():
     """Fetch the player's village data from the Clash of Clans API.
@@ -874,12 +929,7 @@ CATEGORIES = ["BUILDINGS", "HEROES", "TROOPS"]
 
 ALL_PAGES = BUILDINGS + HEROES + TROOPS
 
-for building in BUILDINGS:
-    DB[building] = BuildingInfo(building)
-for troop in TROOPS:
-    DB[troop] = TroopInfo(troop)
-for hero in HEROES:
-    DB[hero] = HeroInfo(hero)
+db = Database(BUILDINGS, TROOPS, HEROES)
 
 PROUT = Village(17)
 PROUT.load_from_exported_json()
