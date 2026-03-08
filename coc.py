@@ -73,7 +73,24 @@ BONUS = 20      # 15(%)
 ## CLASSES ##
 
 class PageInfo:
+    """Base class for wiki page data.
+
+    Loads stats from a local JSON cache file, or scrapes the Clash of Clans
+    wiki page and caches the result on first access.
+
+    Attributes:
+        name: The page/entity name (e.g. 'Cannon', 'Barbarian').
+        file: Path to the local JSON cache file.
+        url: Full wiki URL for this page.
+        info: Dict of parsed stats (column_name -> list of values per level).
+    """
+
     def __init__(self, name):
+        """Load page data from cache or scrape the wiki.
+
+        Args:
+            name: Entity name used for the filename and wiki URL.
+        """
         self.name = name
         self.file = 'data/'+name+'.json'
         self.url = BASE_URL + name
@@ -103,13 +120,35 @@ class PageInfo:
         return f"{self.name}\n"+json.dumps(self.info).replace("{", "{\n    ").replace("}", "\n}").replace("], ", "],\n    ")
 
 class BuildingInfo(PageInfo):
+    """Page info for buildings and defenses.
+
+    Provides building-specific lookups: max count, max level, and upgrade
+    time based on Town Hall level.
+    """
+
     def number_max(self, hdv):
+        """Return the maximum number of this building allowed at the given Town Hall level.
+
+        Args:
+            hdv: Town Hall level (1-indexed).
+
+        Returns:
+            Maximum instance count as an int.
+        """
         try:
             return int(self.info["Number available"][hdv-1])
         except Exception:
             print(f"Error: cannot find number max for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
     def level_max(self, hdv):
+        """Return the maximum upgrade level for this building at the given Town Hall level.
+
+        Args:
+            hdv: Town Hall level.
+
+        Returns:
+            Maximum level as an int.
+        """
         if self.name == "Town_Hall":
             return hdv
         try:
@@ -118,6 +157,14 @@ class BuildingInfo(PageInfo):
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
     def get_upgrade_time(self, level):
+        """Return the build/upgrade time string for the given level.
+
+        Args:
+            level: Target upgrade level (1-indexed).
+
+        Returns:
+            Duration string (e.g. '1d12h').
+        """
         try:
             return self.info["Build_Time"][level-1]
         except KeyError:
@@ -125,7 +172,21 @@ class BuildingInfo(PageInfo):
             raise
 
 class TroopInfo(PageInfo):
+    """Page info for troops, spells, and siege machines.
+
+    Max level is determined by the Laboratory level achievable at a given
+    Town Hall level.
+    """
+
     def level_max(self, hdv):
+        """Return the max troop level achievable at the given Town Hall level.
+
+        Args:
+            hdv: Town Hall level.
+
+        Returns:
+            Maximum level as an int, based on the Laboratory level at that TH.
+        """
         try:
             labo = DB["Laboratory"]
             return sum([int(toto) <= labo.level_max(hdv) for toto in self.info["Laboratory_Level_Required"]])
@@ -133,8 +194,17 @@ class TroopInfo(PageInfo):
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
     def number_max(self, _):
+        """Troops are unique so always return 1."""
         return 1
     def get_upgrade_time(self, level):
+        """Return the research time string for the given level.
+
+        Args:
+            level: Target upgrade level (1-indexed).
+
+        Returns:
+            Duration string (e.g. '2d').
+        """
         try:
             return self.info["Research_Time"][level-1]
         except KeyError:
@@ -142,7 +212,21 @@ class TroopInfo(PageInfo):
             raise
 
 class HeroInfo(PageInfo):
+    """Page info for heroes.
+
+    Max level is determined by the Hero Hall level achievable at a given
+    Town Hall level.
+    """
+
     def level_max(self, hdv):
+        """Return the max hero level achievable at the given Town Hall level.
+
+        Args:
+            hdv: Town Hall level.
+
+        Returns:
+            Maximum level as an int, based on the Hero Hall level at that TH.
+        """
         try:
             hero_hall = DB["Hero_Hall"]
             return sum([int(toto) <= hero_hall.level_max(hdv) for toto in self.info["Hero_Hall_Level_Required"]])
@@ -150,8 +234,17 @@ class HeroInfo(PageInfo):
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
     def number_max(self, _):
+        """Heroes are unique so always return 1."""
         return 1
     def get_upgrade_time(self, level):
+        """Return the upgrade time string for the given hero level.
+
+        Args:
+            level: Target upgrade level (1-indexed).
+
+        Returns:
+            Duration string (e.g. '5d12h').
+        """
         try:
             return self.info["Upgrade_Time"][level-1]
         except KeyError:
@@ -159,6 +252,17 @@ class HeroInfo(PageInfo):
             raise
 
 class IdMap:
+    """Bidirectional mapping between numeric data IDs and entity names.
+
+    Loaded from 'id_map.json'. Supports lookup in both directions via
+    bracket notation: ``id_map[1000008]`` -> ``'Cannon'`` and
+    ``id_map['Cannon']`` -> ``1000008``.
+
+    Attributes:
+        id_to_name: Dict mapping dataId (int) to name (str).
+        name_to_id: Dict mapping name (str) to dataId (int).
+    """
+
     def __init__(self):
         with open('id_map.json', 'r') as fp:
             buffer = json.load(fp)
@@ -174,7 +278,15 @@ class IdMap:
             return self.name_to_id[key]
 
 class Building:
+    """A single building instance in a village with a name and current level."""
+
     def __init__(self, name, level=0):
+        """Create a building instance.
+
+        Args:
+            name: Building name (e.g. 'Cannon').
+            level: Current upgrade level (default 0 = not yet built).
+        """
         self.name = name
         self.level = level
     def __repr__(self):
@@ -186,7 +298,15 @@ class Building:
         return ref.level_max(hdv)
 
 class Troop:
+    """A single troop/spell/siege machine with a name and current level."""
+
     def __init__(self, name, level=1):
+        """Create a troop instance.
+
+        Args:
+            name: Troop name (e.g. 'Barbarian').
+            level: Current research level (default 1).
+        """
         self.name = name
         self.level = level
     def __repr__(self):
@@ -198,7 +318,15 @@ class Troop:
         return ref.level_max(hdv)
 
 class Hero:
+    """A single hero instance with a name and current level."""
+
     def __init__(self, name, level=1):
+        """Create a hero instance.
+
+        Args:
+            name: Hero name (e.g. 'Barbarian_King').
+            level: Current hero level (default 1).
+        """
         self.name = name
         self.level = level
     def __repr__(self):
@@ -210,12 +338,35 @@ class Hero:
         return ref.level_max(hdv)
 
 class Village:
+    """Represents a player's village: buildings, heroes, and troops.
+
+    Can be populated from an exported JSON snapshot and compared against
+    the max levels for a given Town Hall to plan upgrades.
+
+    Attributes:
+        hdv_level: Current Town Hall level.
+        buildings: Dict mapping building name to list of Building instances.
+        heroes: List of Hero instances.
+        troops: List of Troop instances.
+    """
+
     def __init__(self, hdv_level=0):
+        """Create an empty village.
+
+        Args:
+            hdv_level: Town Hall level (default 0).
+        """
         self.hdv_level = hdv_level
         self.buildings = {}
         self.heroes = []
         self.troops = []
     def load_from_exported_json(self):
+        """Populate the village from 'exported_village.json'.
+
+        Reads buildings, traps, heroes, troops, spells, and siege machines.
+        Walls and the Town Hall entry are removed from the buildings dict
+        (the TH level is stored in ``self.hdv_level`` instead).
+        """
         with open('exported_village.json', 'r') as fp:
             data = json.load(fp)
         id_map = IdMap()
@@ -239,6 +390,13 @@ class Village:
         for troop in data["units"] + data["spells"] + data["siege_machines"]:
             self.troops.append(Troop(id_map[troop["data"]], troop["lvl"]))
     def check_nb_buildings(self, hdv):
+        """Ensure the village has the correct number of each building for the given TH level.
+
+        Adds missing buildings at level 0 and prints warnings for mismatches.
+
+        Args:
+            hdv: Town Hall level to validate against.
+        """
         for building, instances in self.buildings.items():
             if len(instances) > DB[building].number_max(hdv):
                 print(f"Warning: too many {building} (have {len(instances)}, max {DB[building].number_max(hdv)})")
@@ -250,6 +408,11 @@ class Village:
                 self.buildings[building] = [Building(building, 0) for _ in range(DB[building].number_max(hdv))]
                 print(f"Warning: missing {building}, adding {DB[building].number_max(hdv)} of them at level 0")
     def to_max(self, hdv):
+        """Print the full upgrade plan to max everything for the given TH level.
+
+        Args:
+            hdv: Target Town Hall level.
+        """
         self.check_nb_buildings(hdv)
         upgrader = Upgrader()
         my_string = f"Village (HDV {self.hdv_level})\n\nBUILDINGS:\n"
@@ -285,7 +448,25 @@ class Village:
             yield troop
 
 class Upgrade:
+    """Represents the sequence of upgrades needed to bring one entity to a target level.
+
+    Computes each upgrade step with its duration (accounting for the builder
+    boost bonus) and the total time.
+
+    Attributes:
+        name: Entity name.
+        list_upgrades: List of (level, duration_str) tuples, highest level first.
+        time_total: Total upgrade time in seconds.
+        offset: Display offset for alignment in the Upgrader output.
+    """
+
     def __init__(self, building, level_max):
+        """Compute all upgrade steps from the entity's current level to level_max.
+
+        Args:
+            building: A Building, Troop, or Hero instance.
+            level_max: Target level to reach.
+        """
         self.name = building.name
         self.list_upgrades = []
         self.time_total = 0
@@ -299,6 +480,7 @@ class Upgrade:
             self.list_upgrades.append((i, in_date(upgrade_time)))
             self.time_total += upgrade_time
     def set_offset(self, offset):
+        """Set the display offset for aligned output."""
         self.offset = offset
     def __lt__(self, other):
         return self.time_total < other.time_total
@@ -316,6 +498,12 @@ class Upgrade:
         return string
 
 class Upgrader:
+    """Collects and displays all upgrades needed across buildings, heroes, and troops.
+
+    Sorts upgrades by total time (longest first) and displays a formatted
+    summary with per-category and overall totals.
+    """
+
     def __init__(self):
         self.max_buildings = 0
         self.max_heroes = 0
@@ -324,6 +512,15 @@ class Upgrader:
         self.heroes = []
         self.troops = []
     def add(self, building, level_max):
+        """Add an entity's upgrade plan to the appropriate category.
+
+        Args:
+            building: A Building, Troop, or Hero instance.
+            level_max: Target level to reach.
+
+        Raises:
+            ValueError: If the entity type is not recognized.
+        """
         if isinstance(building, Building):
             self.buildings.append(Upgrade(building, level_max))
             self.max_buildings = max(self.max_buildings, level_max - building.level)
@@ -336,6 +533,7 @@ class Upgrader:
         else:
             raise ValueError(f"Cannot add {building} to upgrader")
     def refresh(self):
+        """Sort upgrades by total time (descending) and compute display offsets."""
         self.buildings.sort(reverse=True)
         self.heroes.sort(reverse=True)
         self.troops.sort(reverse=True)
@@ -368,6 +566,17 @@ class Upgrader:
 ## FUNCTIONS ##
 
 def extract_from_page(page):
+    """Scrape stats for a given entity from its Clash of Clans wiki page.
+
+    Navigates to the wiki, extracts the stats table, parses columns and
+    content, and returns a dict of {column_name: [values_per_level]}.
+
+    Args:
+        page: Entity name (e.g. 'Cannon', 'Barbarian').
+
+    Returns:
+        Dict mapping column names to lists of string values.
+    """
     url = BASE_URL + page
     print(f'Downloading content for {page} : {url}')
     driver = driver_manager.get_driver()
@@ -397,6 +606,18 @@ def extract_from_page(page):
     return extract_content(page, text, columns, index)
 
 def extract_columns(page, text):
+    """Parse column headers from the raw wiki table text.
+
+    Applies page-specific overrides for pages whose table layout doesn't
+    follow the standard pattern.
+
+    Args:
+        page: Entity name.
+        text: List of text lines from the wiki table.
+
+    Returns:
+        List of column name strings.
+    """
     columns = [i.replace(" ", "_") for i in text if not any(j in i for j in string.digits) and i != '']
     match page:
         case "Witch":
@@ -457,6 +678,15 @@ def extract_columns(page, text):
     return columns
 
 def fuse_date_in_list(i_list, pos):
+    """Try to merge two adjacent duration fragments in a list (e.g. '1d' + '12h' -> '1d12h').
+
+    Args:
+        i_list: List of string tokens.
+        pos: Index of the first token to check.
+
+    Returns:
+        Tuple of (modified list, True if a merge was performed).
+    """
     string1 = i_list[pos]
     string2 = i_list[pos+1]
     if string1[-1] not in ['d', 'h', 'm', 's'] or string2[-1] not in ['d', 'h', 'm', 's']:
@@ -472,6 +702,20 @@ def fuse_date_in_list(i_list, pos):
     return i_list, True
 
 def extract_content(page, text, columns, index):
+    """Parse the data rows from the wiki table into a column-oriented dict.
+
+    Applies page-specific cleanup (removing unit words, fusing split dates,
+    etc.) and also fetches the 'Number available' row from the page.
+
+    Args:
+        page: Entity name.
+        text: List of text lines from the wiki table.
+        columns: List of column name strings.
+        index: Number of trailing columns to handle specially (2 or 3).
+
+    Returns:
+        Dict mapping column names to lists of string values per level.
+    """
     driver = driver_manager.get_driver()
     content_tmp = [i.split() for i in text if any(j in i for j in string.digits)]
     match page:
@@ -522,11 +766,17 @@ def extract_content(page, text, columns, index):
 
 
 def retrieve_all_data():
+    """Populate the global DB with data for all pages (buildings, troops, heroes)."""
     global DB, ALL_PAGES
     for page in ALL_PAGES:
         DB[page] = Page(page).data
 
 def download_my_village():
+    """Fetch the player's village data from the Clash of Clans API.
+
+    Returns:
+        Dict of the player's village data as returned by the API.
+    """
     token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjU1NGQ2NDlmLWE4MTQtNGMzYi05OWVjLWIwNmNlNzJmMTg5OSIsImlhdCI6MTc0NjI4NTMzOSwic3ViIjoiZGV2ZWxvcGVyL2RlN2NlMjIxLWU2ZTgtNjY0Ni01YmQ5LWIwMTMyZWIxNTEyOCIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjgxLjY1LjE2My4xMjAiXSwidHlwZSI6ImNsaWVudCJ9XX0.2xuufB2wE2PJOyz7sap7l1W2GR37g2oisG9gIteCQC1auxnxhIPde4shfltj8t1RSMWECywaYw6anqa8-rya1A"
     headers = {"Authorization": f"Bearer {token}"}
     url = "https://api.clashofclans.com/v1/players/%23GPQUUY989"
@@ -537,6 +787,14 @@ def download_my_village():
 
 
 def in_seconds(date):
+    """Convert a duration string (e.g. '1d12h30m') to total seconds.
+
+    Args:
+        date: Duration string with optional d/h/m/s components.
+
+    Returns:
+        Total duration in seconds as an int.
+    """
     seconds = 0
     a, b, c = date.partition('d')
     if b == 'd':
@@ -562,6 +820,14 @@ def in_seconds(date):
     return seconds
 
 def in_date(seconds):
+    """Convert a number of seconds to a human-readable duration string.
+
+    Args:
+        seconds: Duration in seconds.
+
+    Returns:
+        Formatted string (e.g. '1d12h30m'), or empty string if 0.
+    """
     result = ""
     if seconds == 0:
         return result
