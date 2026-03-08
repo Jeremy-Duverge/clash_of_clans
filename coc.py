@@ -297,12 +297,18 @@ class Upgrader:
         my_string = f"Upgrader\n\nBUILDINGS:\n"
         for building in self.buildings:
             my_string += f"{building}\n"
+        total_buildings = sum(building.time_total for building in self.buildings)
         my_string += f"\nHEROES:\n"
         for hero in self.heroes:
             my_string += f"{hero}\n"
+        total_heroes = sum(hero.time_total for hero in self.heroes)
         my_string += f"\nTROOPS:\n"
         for troop in self.troops:
             my_string += f"{troop}\n"
+        total_troops = sum(troop.time_total for troop in self.troops)
+        my_string += f"\nTOTAL BUILDINGS: {in_date(total_buildings).rjust(12)}"
+        my_string += f"\nTOTAL HEROES: {in_date(total_heroes).rjust(12)}"
+        my_string += f"\nTOTAL TROOPS: {in_date(total_troops).rjust(12)}"
         return my_string
 
 ###############
@@ -399,13 +405,35 @@ def extract_columns(page, text):
         case "Meteor_Golem":
             columns[columns.index("Upgrade_Time")] = "Research_Time"
         case "Elixir_Collector" | "Gold_Mine" | "Dark_Elixir_Drill":
-            columns.append("Town_Hall_Level_Required")
+            columns = ["Level", "Capacity", "Production_Rate", "Hitpoints", "Boost_Cost", "Time_to_Fill", "Build_Cost", "Build_Time", "Experience_Gained", "Catch-Up_Point*", "Town_Hall_Level_Required"]
     return columns
+
+def fuse_date_in_list(list, pos):
+    string1 = list[pos]
+    string2 = list[pos+1]
+    if string1[-1] not in ['d', 'h', 'm', 's'] or string2[-1] not in ['d', 'h', 'm', 's']:
+        return list, False
+    for char in string1:
+        if char not in string.digits and char not in ['d', 'h', 'm', 's']:
+            return list, False
+    for char in string2:
+        if char not in string.digits and char not in ['d', 'h', 'm', 's']:
+            return list, False
+    list[pos] += list[pos+1]
+    del list[pos+1]
+    return list, True
 
 def extract_content(page, text, columns, index):
     global DRIVER
     content_tmp = [i.split() for i in text if any(j in i for j in string.digits)]
     match page:
+        case "Elixir_Collector" | "Gold_Mine" | "Dark_Elixir_Drill":
+            for i in content_tmp:
+                cursor = 0
+                while cursor < len(i)-1:
+                    i, fused = fuse_date_in_list(i, cursor)
+                    if not fused:
+                        cursor += 1
         case "Stone_Slammer":
             content_tmp.remove(content_tmp[0])
         case "Air_Sweeper" | "Giant_Bomb" | "Earthquake_Spell":
