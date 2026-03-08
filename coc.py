@@ -50,6 +50,7 @@ class PageInfo:
                             .replace("N/A", "0")\
                             .replace("5*", "5")\
                             .replace("7/0*", "0")\
+                            .replace("6/2*", "2")\
                             .replace("9/2*", "2")\
                             .replace("7/3*", "3")\
                             .replace("8/4*", "4")
@@ -163,7 +164,7 @@ class Hero:
     def set_level(self, level):
         self.level = level
     def level_max(self, hdv):
-        ref = HeroInfo(self.name)
+        ref = DB[self.name]
         return ref.level_max(hdv)
 
 class Village:
@@ -190,18 +191,24 @@ class Village:
                 self.buildings[id_map[building["data"]]].append(Building(id_map[building["data"]], building["lvl"]))
         del self.buildings["Wall"]
         self.hdv_level = self.buildings["Town_Hall"][0].level
+        del self.buildings["Town_Hall"]
         for hero in data["heroes"]:
             self.heroes.append(Hero(id_map[hero["data"]], hero["lvl"]))
         for troop in data["units"] + data["spells"] + data["siege_machines"]:
             self.troops.append(Troop(id_map[troop["data"]], troop["lvl"]))
-    def check_nb_buildings(self):
-        for building in self.buildings:
-            if len(self.buildings[building]) > DB[building].number_max(self.hdv_level):
-                print(f"Warning: too many {building} (have {len(self.buildings[building])}, max {DB[building].number_max(self.hdv_level)})")
-            elif len(self.buildings[building]) < DB[building].number_max(self.hdv_level):
-                print(f"Warning: too few {building} (have {len(self.buildings[building])}, max {DB[building].number_max(self.hdv_level)})")
+    def check_nb_buildings(self, hdv):
+        for building, instances in self.buildings.items():
+            if len(instances) > DB[building].number_max(hdv):
+                print(f"Warning: too many {building} (have {len(instances)}, max {DB[building].number_max(hdv)})")
+            elif len(instances) < DB[building].number_max(hdv):
+                self.buildings[building] += [Building(building, 0) for _ in range(DB[building].number_max(hdv) - len(instances))]
+                print(f"Warning: too few {building}, adding {DB[building].number_max(hdv) - len(instances)} of them at level 0")
+        for building in BUILDINGS:
+            if building not in self.buildings and DB[building].number_max(hdv) > 0:
+                self.buildings[building] = [Building(building, 0) for _ in range(DB[building].number_max(hdv))]
+                print(f"Warning: missing {building}, adding {DB[building].number_max(hdv)} of them at level 0")
     def to_max(self, hdv):
-        self.check_nb_buildings()
+        self.check_nb_buildings(hdv)
         upgrader = Upgrader()
         my_string = f"Village (HDV {self.hdv_level})\n\nBUILDINGS:\n"
         for building, instances in self.buildings.items():
@@ -343,6 +350,9 @@ def extract_from_page(page):
         else:
             text = DRIVER.find_elements(By.CLASS_NAME, "wikitable")[1].text.splitlines()
         index = 2
+    elif page == "Revenge_Tower":
+        text = DRIVER.find_elements(By.CLASS_NAME, "wikitable")[6].text.splitlines()
+        index = 3
     else:
         print(DRIVER.title)
         text = DRIVER.find_element(By.CLASS_NAME, "wikitable").text.splitlines()
@@ -562,13 +572,13 @@ def level_max(page, hdv):
 ##############
 ## DATABASE ##
 
-BUILDINGS = ["Town_Hall", 'Cannon', 'Archer_Tower', 'Mortar', 'Air_Defense', 'Wizard_Tower', 'Air_Sweeper', 'Hidden_Tesla', 'Bomb_Tower',
+BUILDINGS = ['Cannon', 'Archer_Tower', 'Mortar', 'Air_Defense', 'Wizard_Tower', 'Air_Sweeper', 'Hidden_Tesla', 'Bomb_Tower',
              'X-Bow', 'Inferno_Tower', 'Eagle_Artillery', 'Scattershot', "Builder's_Hut", 'Spell_Tower', 'Monolith',
              "Bomb", "Spring_Trap", "Giant_Bomb", "Air_Bomb", "Seeking_Air_Mine", "Skeleton_Trap", "Tornado_Trap", "Giga_Bomb",
              "Army_Camp", "Barracks", "Dark_Barracks", "Laboratory", "Hero_Hall", "Dark_Spell_Factory",
              "Workshop", "Pet_House", "Blacksmith", "Spell_Factory", "Gold_Mine", "Elixir_Collector", "Dark_Elixir_Drill", 
              "Gold_Storage", "Elixir_Storage", "Dark_Elixir_Storage", "Clan_Castle", "Firespitter", "Multi-Archer_Tower",
-             "Ricochet_Cannon", "Multi-Gear_Tower"]
+             "Ricochet_Cannon", "Multi-Gear_Tower", "Super_Wizard_Tower", "Revenge_Tower"]
 
 HEROES = ["Barbarian_King", "Archer_Queen", "Minion_Prince", "Grand_Warden", "Royal_Champion", "Dragon_Duke"]
 
