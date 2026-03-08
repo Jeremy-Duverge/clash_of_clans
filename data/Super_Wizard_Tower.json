@@ -1,0 +1,12 @@
+{
+    "Level": ["1", "2"],
+    "Damage_per_Second": ["290", "320"],
+    "Damage_per_Hit_(Primary)": ["377", "416"],
+    "Damage_per_Hit_(Secondary)": ["150.8", "166.4"],
+    "Hitpoints": ["6,000", "6,300"],
+    "Build_Cost": ["29,000,000", "30,000,000"],
+    "Build_Time": ["13d", "14d"],
+    "Experience_Gained": ["1,059", "1,099"],
+    "Town_Hall_Level_Required": ["18", "18"],
+    "Number available": ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "2"]
+}
