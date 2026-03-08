@@ -178,7 +178,7 @@ class Village:
         id_map = IdMap()
         for building in data["buildings"] + data["traps"]:
             if building["data"] not in id_map.id_to_name:
-                print(f"Warning: cannot find name for id {building['data']}")
+                print(f"Warning: cannot find name for {building}")
                 continue
             if id_map[building["data"]] not in self.buildings:
                 self.buildings[id_map[building["data"]]] = []
@@ -256,10 +256,14 @@ class Upgrade:
     def __repr__(self):
         string = f"[{self.name.rjust(21)}|"
         for upgrade in self.list_upgrades:
-            string += f" {str(upgrade[0]).rjust(3)}: ({upgrade[1].ljust(9)}) |"
+            string += f" {str(upgrade[0]).rjust(3)}: {upgrade[1].ljust(9)} |"
         for _ in range(self.offset):
-            string += " "*(19)
-        string += f" Total: {in_date(self.time_total).rjust(12)}]"
+            string += " "*(17)
+        string += f" TOTAL: {in_date(self.time_total).ljust(12)}]"
+        cursor = 158
+        while cursor+40 < len(string):
+            string = string[:cursor] + "\n" + " "*22 + string[cursor:]
+            cursor += 176
         return string
 
 class Upgrader:
@@ -306,9 +310,9 @@ class Upgrader:
         for troop in self.troops:
             my_string += f"{troop}\n"
         total_troops = sum(troop.time_total for troop in self.troops)
-        my_string += f"\nTOTAL BUILDINGS: {in_date(total_buildings).rjust(12)}"
-        my_string += f"\nTOTAL HEROES: {in_date(total_heroes).rjust(12)}"
-        my_string += f"\nTOTAL TROOPS: {in_date(total_troops).rjust(12)}"
+        my_string += f"\nTOTAL BUILDINGS: {in_date(total_buildings).ljust(12)}"
+        my_string += f"\nTOTAL HEROES   : {in_date(total_heroes).ljust(12)}"
+        my_string += f"\nTOTAL TROOPS   : {in_date(total_troops).ljust(12)}"
         return my_string
 
 ###############
@@ -333,7 +337,7 @@ def extract_from_page(page):
         time.sleep(1)
     if DRIVER.title == "Just a moment...":
         exit("Error: Cloudflare protection is on, please disable it and try again.")
-    if page in TROOPS or page in HEROES:
+    if page in TROOPS or page in HEROES or page == "Town_Hall":
         if page in ["Bat_Spell", "Skeleton_Spell"]:
             text = DRIVER.find_elements(By.CLASS_NAME, "wikitable")[2].text.splitlines()
         else:
@@ -408,20 +412,20 @@ def extract_columns(page, text):
             columns = ["Level", "Capacity", "Production_Rate", "Hitpoints", "Boost_Cost", "Time_to_Fill", "Build_Cost", "Build_Time", "Experience_Gained", "Catch-Up_Point*", "Town_Hall_Level_Required"]
     return columns
 
-def fuse_date_in_list(list, pos):
-    string1 = list[pos]
-    string2 = list[pos+1]
+def fuse_date_in_list(i_list, pos):
+    string1 = i_list[pos]
+    string2 = i_list[pos+1]
     if string1[-1] not in ['d', 'h', 'm', 's'] or string2[-1] not in ['d', 'h', 'm', 's']:
-        return list, False
+        return i_list, False
     for char in string1:
         if char not in string.digits and char not in ['d', 'h', 'm', 's']:
-            return list, False
+            return i_list, False
     for char in string2:
         if char not in string.digits and char not in ['d', 'h', 'm', 's']:
-            return list, False
-    list[pos] += list[pos+1]
-    del list[pos+1]
-    return list, True
+            return i_list, False
+    i_list[pos] += i_list[pos+1]
+    del i_list[pos+1]
+    return i_list, True
 
 def extract_content(page, text, columns, index):
     global DRIVER
@@ -552,7 +556,7 @@ def level_max(page, hdv):
     try:
         return sum([int(toto) <= level_max("Hero_Hall", hdv) for toto in DB[page]["Hero_Hall_Level_Required"]])
     except KeyError:
-        print(f"Warning: cannot find max level for {page} at HDV {hdv}")
+        print(f"Error: cannot find max level for {page} at HDV {hdv}")
         raise
 
 ##############
