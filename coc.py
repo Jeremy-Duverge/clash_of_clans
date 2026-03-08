@@ -14,8 +14,50 @@ OPTIONS = webdriver.ChromeOptions()
 OPTIONS.add_argument('--incognito')
 BASE_URL = "https://clashofclans.fandom.com/wiki/"
 TAG = "https://api.clashofclans.com/v1/players/%23GPQUUY989"
-DRIVER = None
 DB = {}
+
+
+class DriverManager:
+    """Manages the Selenium WebDriver lifecycle.
+
+    Can be used as a context manager for automatic cleanup::
+
+        with DriverManager() as driver:
+            driver.get(url)
+            ...
+
+    Or manually::
+
+        dm = DriverManager()
+        driver = dm.get_driver()
+        ...
+        dm.quit()
+    """
+
+    def __init__(self):
+        self._driver = None
+
+    def get_driver(self):
+        """Lazily create and return the WebDriver instance."""
+        if self._driver is None:
+            self._driver = webdriver.Chrome(service=CSERVICE, options=OPTIONS)
+        return self._driver
+
+    def quit(self):
+        """Quit the driver if it was created."""
+        if self._driver is not None:
+            self._driver.quit()
+            self._driver = None
+
+    def __enter__(self):
+        return self.get_driver()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.quit()
+        return False
+
+
+driver_manager = DriverManager()
 
 
 
@@ -325,37 +367,29 @@ class Upgrader:
 ###############
 ## FUNCTIONS ##
 
-def init_driver():
-    global DRIVER, CSERVICE, OPTIONS
-    try:
-        DRIVER.title
-    except AttributeError:
-        DRIVER = webdriver.Chrome(service=CSERVICE, options=OPTIONS)
-    return DRIVER
-
 def extract_from_page(page):
     url = BASE_URL + page
     print(f'Downloading content for {page} : {url}')
-    DRIVER = init_driver()
-    DRIVER.get(url)
-    if DRIVER.title == 'Privacy error':
-        DRIVER.find_element(By.ID, "details-button").click()
-        DRIVER.find_element(By.ID, "proceed-link").click()
+    driver = driver_manager.get_driver()
+    driver.get(url)
+    if driver.title == 'Privacy error':
+        driver.find_element(By.ID, "details-button").click()
+        driver.find_element(By.ID, "proceed-link").click()
         time.sleep(1)
-    if DRIVER.title == "Just a moment...":
+    if driver.title == "Just a moment...":
         exit("Error: Cloudflare protection is on, please disable it and try again.")
     if page in TROOPS or page in HEROES or page == "Town_Hall":
         if page in ["Bat_Spell", "Skeleton_Spell"]:
-            text = DRIVER.find_elements(By.CLASS_NAME, "wikitable")[2].text.splitlines()
+            text = driver.find_elements(By.CLASS_NAME, "wikitable")[2].text.splitlines()
         else:
-            text = DRIVER.find_elements(By.CLASS_NAME, "wikitable")[1].text.splitlines()
+            text = driver.find_elements(By.CLASS_NAME, "wikitable")[1].text.splitlines()
         index = 2
     elif page == "Revenge_Tower":
-        text = DRIVER.find_elements(By.CLASS_NAME, "wikitable")[6].text.splitlines()
+        text = driver.find_elements(By.CLASS_NAME, "wikitable")[6].text.splitlines()
         index = 3
     else:
-        print(DRIVER.title)
-        text = DRIVER.find_element(By.CLASS_NAME, "wikitable").text.splitlines()
+        print(driver.title)
+        text = driver.find_element(By.CLASS_NAME, "wikitable").text.splitlines()
         index = 3
     print(f"text =\n{text}")
     columns = extract_columns(page, text)
@@ -438,7 +472,7 @@ def fuse_date_in_list(i_list, pos):
     return i_list, True
 
 def extract_content(page, text, columns, index):
-    global DRIVER
+    driver = driver_manager.get_driver()
     content_tmp = [i.split() for i in text if any(j in i for j in string.digits)]
     match page:
         case "Elixir_Collector" | "Gold_Mine" | "Dark_Elixir_Drill":
@@ -471,7 +505,7 @@ def extract_content(page, text, columns, index):
         case "Barracks" | "Dark_Barracks" | "Dark_Spell_Factory" | "Hero_Hall" | "Pet_House" | "Workshop":
             content_tmp = [[a[0]] + ['_'.join([b for b in a if not any(c in b for c in string.digits)])] + [c for c in a[2:] if any(d in c for d in string.digits)] for a in content_tmp]
     content = [content_tmp_i[:len(columns)-index] + [''.join(content_tmp_i[len(columns)-index:-index+1])] + content_tmp_i[-index+1:] for content_tmp_i in content_tmp]
-    table = DRIVER.find_elements(By.ID, "number-available-data-row")
+    table = driver.find_elements(By.ID, "number-available-data-row")
     nb_buildings = ' '.join([i.text for i in table]).split()[2:]
     # print(content)
     toto = {columns[i]: [content[j][i] for j in range(len(content))] for i in range(len(columns))}
