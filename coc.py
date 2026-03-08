@@ -64,7 +64,7 @@ class BuildingInfo(PageInfo):
     def number_max(self, hdv):
         try:
             return int(self.info["Number available"][hdv-1])
-        except:
+        except Exception:
             print(f"Error: cannot find number max for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
     def level_max(self, hdv):
@@ -72,7 +72,7 @@ class BuildingInfo(PageInfo):
             return hdv
         try:
             return sum([int(toto) <= hdv for toto in self.info["Town_Hall_Level_Required"]])
-        except:
+        except Exception:
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
     def get_upgrade_time(self, level):
@@ -87,7 +87,7 @@ class TroopInfo(PageInfo):
         try:
             labo = DB["Laboratory"]
             return sum([int(toto) <= labo.level_max(hdv) for toto in self.info["Laboratory_Level_Required"]])
-        except:
+        except Exception:
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
     def number_max(self, _):
@@ -104,7 +104,7 @@ class HeroInfo(PageInfo):
         try:
             hero_hall = DB["Hero_Hall"]
             return sum([int(toto) <= hero_hall.level_max(hdv) for toto in self.info["Hero_Hall_Level_Required"]])
-        except:
+        except Exception:
             print(f"Error: cannot find max level for {self.name} at HDV {hdv}\n{self.info}\n{self.url}")
             raise
     def number_max(self, _):
@@ -547,27 +547,6 @@ def in_date(seconds):
         result += str(seconds) + "s"
     return result
 
-
-def number_max(page, hdv):
-    try:
-        return int(DB[page]["Number available"][hdv-1])
-    except IndexError:
-        return 1
-
-def level_max(page, hdv):
-    try:
-        return sum([int(toto) <= hdv for toto in DB[page]["Town_Hall_Level_Required"]])
-    except KeyError:
-        pass
-    try:
-        return sum([int(toto) <= level_max("Laboratory", hdv) for toto in DB[page]["Laboratory_Level_Required"]])
-    except KeyError:
-        pass
-    try:
-        return sum([int(toto) <= level_max("Hero_Hall", hdv) for toto in DB[page]["Hero_Hall_Level_Required"]])
-    except KeyError:
-        print(f"Error: cannot find max level for {page} at HDV {hdv}")
-        raise
 
 ##############
 ## DATABASE ##
