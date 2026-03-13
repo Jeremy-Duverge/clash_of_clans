@@ -547,7 +547,7 @@ class Upgrade:
             string += f" {str(upgrade[0]).rjust(3)}: {upgrade[1].ljust(9)} |"
         for _ in range(self.offset):
             string += " "*(17)
-        string += f" TOTAL: {in_date(self.time_total).ljust(12)}]"
+        string += f" \033[1mTOTAL: {in_date(self.time_total).ljust(12)}\033[0m]"
         cursor = 158
         while cursor+40 < len(string):
             string = string[:cursor] + "\n" + " "*22 + string[cursor:]
