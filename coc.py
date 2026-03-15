@@ -554,7 +554,101 @@ class Upgrade:
             cursor += 176
         return string
 
+class CompactedUpgrade:
+    """Represents a compacted view of upgrades for multiple instances of the same entity.
+
+    Attributes:
+        name: Entity name.
+        count: Number of instances being upgraded.
+        level: Target level for all instances.
+        time_per_instance: Upgrade time for one instance to reach the target level.
+    """
+
+    def __init__(self, name, level):
+        self.name = name
+        self.count = 1
+        self.level = level
+        self.time_per_instance = int((1-0.01*BONUS)*in_seconds(db[name].get_upgrade_time(level)))
+    def __repr__(self):
+        return f"{self.name.rjust(30)} -> {str(self.level).rjust(3)} : {in_date(self.time_per_instance).ljust(12)}  {self.count>1 and 'x'+str(self.count).rjust(3) or ''}"
+    def __lt__(self, other):
+        return self.time_per_instance < other.time_per_instance
+
 class Upgrader:
+    """Collects and displays all upgrades needed across buildings, heroes, and troops.
+
+    Sorts upgrades by unit time (longest first), gathers similar upgrades, and
+    displays a formatted summary with per-category and overall totals.
+    """
+
+    def __init__(self):
+        self.buildings = {}
+        self.heroes = []
+        self.troops = []
+    def add_building(self, building, level_max):
+        """Add a building's upgrade plan to the buildings category.
+
+        Args:
+            building: A Building instance.
+            level_max: Target level to reach.
+        """
+        for level in range(building.level+1, level_max+1):
+            if (building.name, level) not in self.buildings:
+                self.buildings[(building.name, level)] = CompactedUpgrade(building.name, level)
+            else:
+                self.buildings[(building.name, level)].count += 1
+    def add_hero(self, hero, level_max):
+        """Add a hero's upgrade plan to the heroes category.
+
+        Args:
+            hero: A Hero instance.
+            level_max: Target level to reach.
+        """
+        for level in range(hero.level+1, level_max+1):
+            self.heroes.append(CompactedUpgrade(hero.name, level))
+    def add_troop(self, troop, level_max):
+        """Add a troop's upgrade plan to the troops category.
+
+        Args:
+            troop: A Troop instance.
+            level_max: Target level to reach.
+        """
+        for level in range(troop.level+1, level_max+1):
+            self.troops.append(CompactedUpgrade(troop.name, level))
+    def add(self, building, level_max):
+        """Add an entity's upgrade plan to the appropriate category.
+
+        Args:
+            building: A Building, Troop, or Hero instance.
+            level_max: Target level to reach.
+
+        Raises:
+            ValueError: If the entity type is not recognized.
+        """
+        if isinstance(building, Building):
+            self.add_building(building, level_max)
+        elif isinstance(building, Hero):
+            self.add_hero(building, level_max)
+        elif isinstance(building, Troop):
+            self.add_troop(building, level_max)
+        else:
+            raise ValueError(f"Cannot add {building} to upgrader")
+    def __repr__(self):
+        my_string = f"Upgrader\n\nBUILDINGS:\n"
+        for upgrade in sorted(self.buildings.values(), reverse=True):
+            my_string += f"{upgrade}\n"
+        my_string += f"\nHEROES:\n"
+        for upgrade in sorted(self.heroes, reverse=True):
+            my_string += f"{upgrade}\n"
+        my_string += f"\nTROOPS:\n"
+        for upgrade in sorted(self.troops, reverse=True):
+            my_string += f"{upgrade}\n"
+        my_string += f"\nTOTAL BUILDINGS: {in_date(sum(upgrade.time_per_instance * upgrade.count for upgrade in self.buildings.values())).ljust(12)}"
+        my_string += f"\nTOTAL HEROES   : {in_date(sum(upgrade.time_per_instance * upgrade.count for upgrade in self.heroes)).ljust(12)}"
+        my_string += f"\nTOTAL TROOPS   : {in_date(sum(upgrade.time_per_instance * upgrade.count for upgrade in self.troops)).ljust(12)}"
+        return my_string
+
+class UpgraderByBuilding:
     """Collects and displays all upgrades needed across buildings, heroes, and troops.
 
     Sorts upgrades by total time (longest first) and displays a formatted
